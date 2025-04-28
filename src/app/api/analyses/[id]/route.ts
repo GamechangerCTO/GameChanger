@@ -11,9 +11,18 @@ const createServerClient = () => {
 };
 
 // קבלת פרטי ניתוח
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest) {
   try {
-    const analysisId = params.id;
+    // שליפת ה-id מה-URL
+    const url = req.nextUrl;
+    const id = url.pathname.split('/').pop();
+    if (!id) {
+      return NextResponse.json(
+        { error: 'לא סופק מזהה ניתוח' },
+        { status: 400 }
+      );
+    }
+    const analysisId = id;
     const supabase = createServerClient();
     
     // בדיקת הרשאות - גישה רק למשתמשים מחוברים
@@ -68,9 +77,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 // מחיקת ניתוח
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest) {
   try {
-    const analysisId = params.id;
+    // שליפת ה-id מה-URL
+    const url = req.nextUrl;
+    const id = url.pathname.split('/').pop();
+    if (!id) {
+      return NextResponse.json(
+        { error: 'לא סופק מזהה ניתוח' },
+        { status: 400 }
+      );
+    }
+    const analysisId = id;
     const supabase = createServerClient();
     
     // בדיקת הרשאות - גישה רק למשתמשים מחוברים
