@@ -255,7 +255,7 @@ export function AnalysisList() {
                 </TableCell>
                 <TableCell className="text-left text-gray-300">
                   {analysis.status === 'done' ? (
-                    analysis.report_data?.totalScore ?? 'לא זמין'
+                    analysis.report_data?.summary?.totalScore ?? 'לא זמין'
                   ) : (
                     '-'
                   )}
