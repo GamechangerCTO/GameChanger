@@ -12,16 +12,38 @@ export const getOpenAI = () => {
 };
 
 // פונקציה ליצירת מופע של Supabase עם מפתחות ה-API
-export const getSupabaseAdmin = () => {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+export function getSupabaseAdmin() {
+  console.log('[DEBUG] מנסה ליצור חיבור ל-Supabase Admin');
   
-  if (!url || !serviceRoleKey) {
-    throw new Error('Supabase URL or service role key is missing');
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    console.error('[FATAL] חסרים משתני סביבה SUPABASE_URL או SUPABASE_SERVICE_ROLE_KEY');
+    throw new Error(
+      'Missing environment variables SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
+    );
   }
   
-  return createClient(url, serviceRoleKey);
-};
+  try {
+    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      },
+      global: {
+        fetch: (url, options) => {
+          return fetch(url, {
+            ...options,
+            signal: AbortSignal.timeout(15000) // 15 שניות timeout
+          });
+        }
+      }
+    });
+    
+    return supabase;
+  } catch (error) {
+    console.error('[FATAL] שגיאה ביצירת חיבור ל-Supabase Admin:', error);
+    throw error;
+  }
+}
 
 // פונקציה לקבלת URL עם גישה ישירה לקובץ באמצעות Edge Function
 export async function getFileSignedUrl(bucketName: string, filePath: string): Promise<string> {
@@ -291,135 +313,186 @@ export async function updateAnalysisStatus(
 // פונקציה לעיבוד ניתוח חדש
 export async function processAnalysis(analysisId: string): Promise<void> {
   console.log(`[START] מתחיל עיבוד ניתוח ${analysisId}`);
-  const supabase = getSupabaseAdmin();
+  let supabase = null;
   
   try {
-    console.log(`[LOG] מבקש נתוני ניתוח ${analysisId}`);
-    // הוספת לוג לפני הקריאה ל-Supabase
-    console.log(`[DEBUG] לפני הקריאה ל-supabase.from('call_analyses').select('*').eq('id', ${analysisId}).single()`);
+    // יצירת חיבור supabase בתוך try-catch
+    try {
+      supabase = getSupabaseAdmin();
+      console.log('[DEBUG] חיבור ל-Supabase נוצר בהצלחה');
+    } catch (supabaseError: any) {
+      console.error('[FATAL] שגיאה ביצירת חיבור ל-Supabase:', supabaseError);
+      // לא ניתן להמשיך אם אין חיבור תקין לסופאבייס
+      throw new Error(`שגיאה ביצירת חיבור ל-Supabase: ${supabaseError.message}`);
+    }
     
-    // Get the analysis data
-    const { data: analysis, error } = await supabase
+    console.log(`[LOG] מבקש נתוני ניתוח ${analysisId}`);
+    
+    // בדיקה האם תהליך העיבוד שלנו נמצא כבר באמצע תהליך
+    // הוספת מערכת ניהול מצב לעיבוד בשלבים
+    const { data: existingAnalysis, error: checkError } = await supabase
       .from('call_analyses')
       .select('*')
       .eq('id', analysisId)
       .single();
       
-    // הוספת לוג אחרי הקריאה ל-Supabase, לפני הבדיקות
-    console.log(`[DEBUG] אחרי הקריאה ל-Supabase. שגיאה שהתקבלה:`, error || 'אין שגיאה');
-    console.log(`[DEBUG] נתונים שהתקבלו:`, analysis ? `סטטוס ${analysis.status}` : 'אין נתונים');
-      
-    if (error) {
-      console.error(`[ERROR] שגיאה בקבלת נתוני ניתוח ${analysisId}:`, JSON.stringify(error, null, 2)); // הדפסת השגיאה המלאה
-      // נשקול לעדכן סטטוס לשגיאה כאן, אך קודם נבין את השגיאה
-      await updateAnalysisStatus(analysisId, 'error', { error_message: `שגיאה בקבלת נתוני ניתוח: ${error.message}` });
-      throw new Error(`שגיאה בקבלת נתוני ניתוח: ${error.message}`);
+    if (checkError) {
+      console.error(`[ERROR] שגיאה בקבלת נתוני ניתוח ${analysisId}:`, JSON.stringify(checkError, null, 2));
+      await updateAnalysisStatus(analysisId, 'error', { error_message: `שגיאה בקבלת נתוני ניתוח: ${checkError.message}` });
+      throw new Error(`שגיאה בקבלת נתוני ניתוח: ${checkError.message}`);
     }
     
-    if (!analysis) {
+    if (!existingAnalysis) {
       console.error(`[ERROR] ניתוח ${analysisId} לא נמצא במסד הנתונים`);
       await updateAnalysisStatus(analysisId, 'error', { error_message: 'ניתוח לא נמצא במסד הנתונים' });
       throw new Error('ניתוח לא נמצא');
     }
-    
-    // עברנו את הבדיקות, ממשיכים
-    console.log(`[LOG] נתוני ניתוח התקבלו, סטטוס: ${analysis.status}, סוג: ${analysis.analysis_type}`);
-    
-    // בדיקה שנתוני הניתוח תקינים ושיש URL להקלטה
-    if (!analysis.recording_url) {
-      console.error(`[ERROR] חסר URL הקלטה לניתוח ${analysisId}`);
-      
-      // עדכון סטטוס לשגיאה
-      await updateAnalysisStatus(analysisId, 'error', {
-        error_message: 'חסר URL הקלטה לניתוח'
-      });
-      
-      throw new Error('חסר URL הקלטה לניתוח');
-    }
-    
-    const audioUrl = analysis.recording_url;
-    console.log(`[LOG] URL הקלטה: ${audioUrl.substring(0, 50)}...`);
-    
-    // בדיקה נוספת שה-URL תקין
-    if (!audioUrl.startsWith('http')) {
-      console.error(`[ERROR] URL הקלטה לא תקין: ${audioUrl}`);
-      
-      // עדכון סטטוס לשגיאה
-      await updateAnalysisStatus(analysisId, 'error', {
-        error_message: 'URL הקלטה לא תקין'
-      });
-      
-      throw new Error('URL הקלטה לא תקין');
-    }
-    
-    try {
-      // הוספתי לוגים למעקב אחר השלבים העיקריים
-      console.log(`[LOG] מתחיל תמלול הקלטה מ-URL: ${audioUrl.substring(0, 50)}...`);
-      
-      const transcript = await transcribeAudio(audioUrl);
-      console.log(`[LOG] תמלול הושלם, אורך: ${transcript.length} תווים`);
-      
-      // עדכון ישיר של התמלול במסד הנתונים
-      console.log(`[LOG] מעדכן תמלול במסד הנתונים ישירות`);
-      const { error: transcriptError } = await supabase
-        .from('call_analyses')
-        .update({ 
-          transcription: transcript,
-          status: 'processing'
-        })
-        .eq('id', analysisId);
+
+    // הגדרת השלב הנוכחי מתוך metadata
+    const metadata = existingAnalysis.metadata || {};
+    const currentStage = metadata.processing_stage || 'start';
+    const audioUrl = existingAnalysis.recording_url;
+
+    console.log(`[LOG] מצב עיבוד נוכחי: ${currentStage}, סטטוס: ${existingAnalysis.status}`);
+
+    // עיבוד לפי שלבים - כל שלב יסתיים בזמן סביר מתחת ל-10 שניות
+    switch (currentStage) {
+      // שלב ראשון - התחלה וקבלת נתונים
+      case 'start':
+        // בדיקה שנתוני הניתוח תקינים ושיש URL להקלטה
+        if (!audioUrl) {
+          console.error(`[ERROR] חסר URL הקלטה לניתוח ${analysisId}`);
+          await updateAnalysisStatus(analysisId, 'error', {
+            error_message: 'חסר URL הקלטה לניתוח'
+          });
+          throw new Error('חסר URL הקלטה לניתוח');
+        }
         
-      if (transcriptError) {
-        console.error(`[ERROR] שגיאה בעדכון התמלול:`, transcriptError);
-        throw new Error(`שגיאה בעדכון התמלול: ${transcriptError.message}`);
-      }
-      
-      // ניתוח התמלול
-      console.log(`[LOG] מתחיל ניתוח תמלול לניתוח ${analysisId}`);
-      const analysisResult = await analyzeTranscript(
-        transcript,
-        analysis.company,
-        analysis.analysis_type
-      );
-      console.log(`[LOG] ניתוח תמלול הושלם בהצלחה. תוצאה:`, analysisResult.substring(0, 100) + '...');
-      
-      // עדכון ישיר של תוצאות הניתוח במסד הנתונים
-      console.log(`[LOG] מעדכן את תוצאות הניתוח במסד הנתונים ישירות`);
-      let parsedResult;
-      try {
-        parsedResult = typeof analysisResult === 'string' 
-          ? JSON.parse(analysisResult) 
-          : analysisResult;
-      } catch (parseError) {
-        console.error(`[ERROR] שגיאה בפירוש תוצאות ניתוח כ-JSON:`, parseError);
-        parsedResult = { error: 'שגיאה בפירוש תוצאות הניתוח' };
-      }
-      
-      const { error: resultError } = await supabase
-        .from('call_analyses')
-        .update({ 
-          report_data: parsedResult,
-          status: 'done'
-        })
-        .eq('id', analysisId);
+        console.log(`[LOG] URL הקלטה: ${audioUrl.substring(0, 50)}...`);
         
-      if (resultError) {
-        console.error(`[ERROR] שגיאה בעדכון תוצאות הניתוח:`, resultError);
-        throw new Error(`שגיאה בעדכון תוצאות הניתוח: ${resultError.message}`);
-      }
-      
-      console.log(`[SUCCESS] ניתוח ${analysisId} הושלם בהצלחה`);
-      
-    } catch (processError: any) {
-      console.error(`[ERROR] שגיאה בעיבוד הניתוח ${analysisId}:`, processError);
-      
-      // עדכון סטטוס הניתוח לשגיאה
-      await updateAnalysisStatus(analysisId, 'error', {
-        error_message: processError.message || 'שגיאה לא ידועה בעיבוד הניתוח'
-      });
-      
-      throw processError;
+        // בדיקה נוספת שה-URL תקין
+        if (!audioUrl.startsWith('http')) {
+          console.error(`[ERROR] URL הקלטה לא תקין: ${audioUrl}`);
+          await updateAnalysisStatus(analysisId, 'error', {
+            error_message: 'URL הקלטה לא תקין'
+          });
+          throw new Error('URL הקלטה לא תקין');
+        }
+
+        // עדכון השלב הבא לתמלול
+        await supabase
+          .from('call_analyses')
+          .update({
+            metadata: { ...metadata, processing_stage: 'transcription' },
+            status: 'processing'
+          })
+          .eq('id', analysisId);
+        
+        // יצירת URL להפעלה עצמית לשלב הבא
+        const selfCallUrl = `${process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL || ''}/api/process-analysis?id=${analysisId}`;
+        console.log(`[LOG] מפעיל מחדש את התהליך בשלב הבא: ${selfCallUrl}`);
+        
+        // קריאה עצמית לשלב הבא - חייב להיות אסינכרוני כדי לא לחסום את התהליך הנוכחי
+        fetch(selfCallUrl, { method: 'POST' })
+          .catch(err => console.error('[ERROR] שגיאה בהפעלת השלב הבא:', err));
+        
+        return; // סיום מוקדם של הפונקציה - השלב הבא יופעל בקריאה נפרדת
+
+      // שלב שני - תמלול ההקלטה
+      case 'transcription':
+        console.log(`[LOG] מתחיל תמלול הקלטה: ${audioUrl.substring(0, 50)}...`);
+        try {
+          const transcript = await transcribeAudio(audioUrl);
+          console.log(`[LOG] תמלול הושלם, אורך: ${transcript.length} תווים`);
+          
+          // עדכון התמלול ומעבר לשלב הבא
+          await supabase
+            .from('call_analyses')
+            .update({
+              transcription: transcript,
+              metadata: { ...metadata, processing_stage: 'analysis' },
+              status: 'processing'
+            })
+            .eq('id', analysisId);
+            
+          // הפעלת השלב הבא
+          const nextUrl = `${process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL || ''}/api/process-analysis?id=${analysisId}`;
+          fetch(nextUrl, { method: 'POST' })
+            .catch(err => console.error('[ERROR] שגיאה בהפעלת שלב הניתוח:', err));
+          
+          return; // סיום מוקדם של הפונקציה
+        } catch (transcribeError: any) {
+          console.error(`[ERROR] שגיאה בתמלול:`, transcribeError);
+          await updateAnalysisStatus(analysisId, 'error', {
+            error_message: `שגיאה בתמלול: ${transcribeError.message}`
+          });
+          throw transcribeError;
+        }
+
+      // שלב שלישי - ניתוח התמלול  
+      case 'analysis':
+        // וידוא שיש לנו תמלול
+        if (!existingAnalysis.transcription) {
+          console.error(`[ERROR] חסר תמלול לניתוח ${analysisId}`);
+          await updateAnalysisStatus(analysisId, 'error', {
+            error_message: 'חסר תמלול לניתוח'
+          });
+          throw new Error('חסר תמלול לניתוח');
+        }
+        
+        try {
+          console.log(`[LOG] מתחיל ניתוח תמלול לניתוח ${analysisId}`);
+          const analysisResult = await analyzeTranscript(
+            existingAnalysis.transcription,
+            existingAnalysis.company,
+            existingAnalysis.analysis_type
+          );
+          console.log(`[LOG] ניתוח תמלול הושלם בהצלחה`);
+          
+          // פירוש התוצאות ועדכון הניתוח כמושלם
+          let parsedResult;
+          try {
+            parsedResult = typeof analysisResult === 'string' 
+              ? JSON.parse(analysisResult) 
+              : analysisResult;
+          } catch (parseError) {
+            console.error(`[ERROR] שגיאה בפירוש תוצאות ניתוח כ-JSON:`, parseError);
+            parsedResult = { error: 'שגיאה בפירוש תוצאות הניתוח' };
+          }
+          
+          await supabase
+            .from('call_analyses')
+            .update({ 
+              report_data: parsedResult,
+              metadata: { ...metadata, processing_stage: 'complete' },
+              status: 'done'
+            })
+            .eq('id', analysisId);
+            
+          console.log(`[SUCCESS] ניתוח ${analysisId} הושלם בהצלחה`);
+          return;
+        } catch (analysisError: any) {
+          console.error(`[ERROR] שגיאה בניתוח התמלול:`, analysisError);
+          await updateAnalysisStatus(analysisId, 'error', {
+            error_message: `שגיאה בניתוח התמלול: ${analysisError.message}`
+          });
+          throw analysisError;
+        }
+        
+      // שלב שכבר הושלם
+      case 'complete':
+        console.log(`[INFO] ניתוח ${analysisId} כבר הושלם`);
+        return;
+        
+      // שלב לא מוכר - כנראה שגיאה
+      default:
+        console.error(`[ERROR] שלב עיבוד לא מוכר: ${currentStage}`);
+        await updateAnalysisStatus(analysisId, 'error', {
+          error_message: `שלב עיבוד לא מוכר: ${currentStage}`
+        });
+        throw new Error(`שלב עיבוד לא מוכר: ${currentStage}`);
     }
+    
   } catch (error: any) {
     console.error(`[ERROR] שגיאה כללית בניתוח ${analysisId}:`, error);
     
