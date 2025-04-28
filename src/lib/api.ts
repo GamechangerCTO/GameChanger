@@ -295,6 +295,9 @@ export async function processAnalysis(analysisId: string): Promise<void> {
   
   try {
     console.log(`[LOG] מבקש נתוני ניתוח ${analysisId}`);
+    // הוספת לוג לפני הקריאה ל-Supabase
+    console.log(`[DEBUG] לפני הקריאה ל-supabase.from('call_analyses').select('*').eq('id', ${analysisId}).single()`);
+    
     // Get the analysis data
     const { data: analysis, error } = await supabase
       .from('call_analyses')
@@ -302,16 +305,24 @@ export async function processAnalysis(analysisId: string): Promise<void> {
       .eq('id', analysisId)
       .single();
       
+    // הוספת לוג אחרי הקריאה ל-Supabase, לפני הבדיקות
+    console.log(`[DEBUG] אחרי הקריאה ל-Supabase. שגיאה שהתקבלה:`, error || 'אין שגיאה');
+    console.log(`[DEBUG] נתונים שהתקבלו:`, analysis ? `סטטוס ${analysis.status}` : 'אין נתונים');
+      
     if (error) {
-      console.error(`[ERROR] שגיאה בקבלת נתוני ניתוח ${analysisId}:`, error);
+      console.error(`[ERROR] שגיאה בקבלת נתוני ניתוח ${analysisId}:`, JSON.stringify(error, null, 2)); // הדפסת השגיאה המלאה
+      // נשקול לעדכן סטטוס לשגיאה כאן, אך קודם נבין את השגיאה
+      await updateAnalysisStatus(analysisId, 'error', { error_message: `שגיאה בקבלת נתוני ניתוח: ${error.message}` });
       throw new Error(`שגיאה בקבלת נתוני ניתוח: ${error.message}`);
     }
     
     if (!analysis) {
-      console.error(`[ERROR] ניתוח ${analysisId} לא נמצא`);
+      console.error(`[ERROR] ניתוח ${analysisId} לא נמצא במסד הנתונים`);
+      await updateAnalysisStatus(analysisId, 'error', { error_message: 'ניתוח לא נמצא במסד הנתונים' });
       throw new Error('ניתוח לא נמצא');
     }
     
+    // עברנו את הבדיקות, ממשיכים
     console.log(`[LOG] נתוני ניתוח התקבלו, סטטוס: ${analysis.status}, סוג: ${analysis.analysis_type}`);
     
     // בדיקה שנתוני הניתוח תקינים ושיש URL להקלטה
