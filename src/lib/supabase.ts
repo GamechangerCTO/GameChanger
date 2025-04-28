@@ -39,6 +39,10 @@ export type CallAnalysis = {
     };
     error?: string;
   };
+  metadata?: {
+    processing_stage?: string;
+    [key: string]: any;
+  };
   transcription: string;
   created_at: string;
   updated_at: string;

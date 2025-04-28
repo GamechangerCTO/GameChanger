@@ -30,7 +30,7 @@ import {
  */
 export default function AnalysisPage() {
   const params = useParams();
-  const analysisId = params.id as string;
+  const analysisId = params?.id as string;
   const { user } = useAuth();
   const router = useRouter();
   const [analysis, setAnalysis] = useState<CallAnalysis | null>(null);

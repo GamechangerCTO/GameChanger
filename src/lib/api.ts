@@ -492,7 +492,6 @@ export async function processAnalysis(analysisId: string): Promise<void> {
         });
         throw new Error(`שלב עיבוד לא מוכר: ${currentStage}`);
     }
-    
   } catch (error: any) {
     console.error(`[ERROR] שגיאה כללית בניתוח ${analysisId}:`, error);
     
@@ -571,4 +570,4 @@ export async function deleteAnalysis(analysisId: string): Promise<void> {
     console.error(`[ERROR] שגיאה במחיקת ניתוח ${analysisId}:`, error);
     throw error;
   }
-} 
+}
