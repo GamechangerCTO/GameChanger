@@ -15,15 +15,18 @@ export const getOpenAI = () => {
 export function getSupabaseAdmin() {
   console.log('[DEBUG] מנסה ליצור חיבור ל-Supabase Admin');
   
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    console.error('[FATAL] חסרים משתני סביבה SUPABASE_URL או SUPABASE_SERVICE_ROLE_KEY');
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error('[FATAL] חסרים משתני סביבה NEXT_PUBLIC_SUPABASE_URL או SUPABASE_SERVICE_ROLE_KEY');
     throw new Error(
-      'Missing environment variables SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
+      'Missing environment variables NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY'
     );
   }
   
   try {
-    const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false
