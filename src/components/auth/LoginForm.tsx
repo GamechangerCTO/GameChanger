@@ -15,11 +15,17 @@ export function LoginForm() {
       setIsLoading(true);
       setError(null);
 
+      // הגדר את כתובת האתר המארח - השתמש בכתובת ורסל בייצור
+      // ובמקומי בפיתוח
+      const redirectUrl = process.env.NODE_ENV === 'production' 
+        ? 'https://game-changer-gilt.vercel.app/dashboard' // שנה לכתובת המדויקת של האתר שלך
+        : `${window.location.origin}/dashboard`;
+
       // Configure Google auth with redirect
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`,
+          redirectTo: redirectUrl,
         },
       });
 
