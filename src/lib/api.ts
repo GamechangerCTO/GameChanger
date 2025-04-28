@@ -277,70 +277,74 @@ export async function updateAnalysisStatus(
       .eq('id', analysisId);
       
     if (error) {
-      console.error(`[ERROR] שגיאה בעדכון סטטוס ניתוח ${analysisId}:`, error);
-      throw new Error(`Failed to update analysis status: ${error.message}`);
+      console.error(`[ERROR] שגיאה בעדכון הניתוח ${analysisId}:`, error);
+      throw new Error(`שגיאה בעדכון הניתוח: ${error.message}`);
     }
     
-    console.log(`[SUCCESS] סטטוס ניתוח ${analysisId} עודכן בהצלחה ל-${status}`);
-  } catch (error: any) {
-    console.error('[ERROR] שגיאה בעדכון סטטוס ניתוח:', error);
-    throw new Error(`Failed to update analysis: ${error.message}`);
+    console.log(`[LOG] הניתוח ${analysisId} עודכן בהצלחה ל-${status}`);
+  } catch (error) {
+    console.error(`[ERROR] שגיאה בתהליך עדכון הניתוח ${analysisId}:`, error);
+    throw error; // re-throw the error to handle it upstream
   }
 }
 
 // פונקציה לעיבוד ניתוח חדש
 export async function processAnalysis(analysisId: string): Promise<void> {
   console.log(`[START] מתחיל עיבוד ניתוח ${analysisId}`);
+  const supabase = getSupabaseAdmin();
+  
   try {
-    const supabase = getSupabaseAdmin();
-    
-    // קבלת פרטי הניתוח
-    console.log(`[LOG] מבקש נתוני ניתוח ${analysisId} מהמסד`);
-    const { data: analysis, error: fetchError } = await supabase
+    console.log(`[LOG] מבקש נתוני ניתוח ${analysisId}`);
+    // Get the analysis data
+    const { data: analysis, error } = await supabase
       .from('call_analyses')
-      .select('*, company:company_id(*)')
+      .select('*')
       .eq('id', analysisId)
       .single();
       
-    if (fetchError || !analysis) {
-      console.error(`[ERROR] לא נמצא ניתוח ${analysisId}:`, fetchError);
-      throw new Error(`Failed to fetch analysis: ${fetchError?.message || 'Analysis not found'}`);
+    if (error) {
+      console.error(`[ERROR] שגיאה בקבלת נתוני ניתוח ${analysisId}:`, error);
+      throw new Error(`שגיאה בקבלת נתוני ניתוח: ${error.message}`);
     }
     
-    console.log(`[LOG] נתוני ניתוח ${analysisId} התקבלו, סוג: ${analysis.analysis_type}`);
+    if (!analysis) {
+      console.error(`[ERROR] ניתוח ${analysisId} לא נמצא`);
+      throw new Error('ניתוח לא נמצא');
+    }
     
-    // עדכון סטטוס לעיבוד
-    await updateAnalysisStatus(analysisId, 'processing');
+    console.log(`[LOG] נתוני ניתוח התקבלו, סטטוס: ${analysis.status}, סוג: ${analysis.analysis_type}`);
     
-    // וידוא URL תקין לקובץ השמע
+    // בדיקה שנתוני הניתוח תקינים ושיש URL להקלטה
     if (!analysis.recording_url) {
-      throw new Error(`אין URL להקלטה בניתוח ${analysisId}`);
+      console.error(`[ERROR] חסר URL הקלטה לניתוח ${analysisId}`);
+      
+      // עדכון סטטוס לשגיאה
+      await updateAnalysisStatus(analysisId, 'error', {
+        error_message: 'חסר URL הקלטה לניתוח'
+      });
+      
+      throw new Error('חסר URL הקלטה לניתוח');
     }
     
-    let audioUrl = analysis.recording_url;
+    const audioUrl = analysis.recording_url;
+    console.log(`[LOG] URL הקלטה: ${audioUrl.substring(0, 50)}...`);
     
-    // בדיקה אם זהו URL של Supabase Storage והשגת URL חתום אם צריך
-    if (audioUrl.includes('supabase.co/storage/v1/object')) {
-      try {
-        // הפרדת נתיב הקובץ מה-URL
-        const urlParts = audioUrl.split('/storage/v1/object/');
-        if (urlParts.length > 1) {
-          const pathParts = urlParts[1].split('/');
-          const bucketName = pathParts[1];  // אחרי public/
-          const filePath = pathParts.slice(2).join('/');
-          
-          console.log(`[LOG] מבקש URL חתום לקובץ בנתיב: ${filePath} בדלי: ${bucketName}`);
-          audioUrl = await getFileSignedUrl(bucketName, filePath);
-          console.log(`[LOG] התקבל URL חתום לקובץ שמע: ${audioUrl.substring(0, 50)}...`);
-        }
-      } catch (urlError: any) {
-        console.warn(`[WARN] שגיאה בהמרת URL לחתום: ${urlError.message}. ממשיך עם ה-URL המקורי.`);
-      }
+    // בדיקה נוספת שה-URL תקין
+    if (!audioUrl.startsWith('http')) {
+      console.error(`[ERROR] URL הקלטה לא תקין: ${audioUrl}`);
+      
+      // עדכון סטטוס לשגיאה
+      await updateAnalysisStatus(analysisId, 'error', {
+        error_message: 'URL הקלטה לא תקין'
+      });
+      
+      throw new Error('URL הקלטה לא תקין');
     }
     
-    // תמלול הקובץ
-    console.log(`[LOG] מבצע תמלול לקובץ: ${audioUrl.substring(0, 50)}...`);
     try {
+      // הוספתי לוגים למעקב אחר השלבים העיקריים
+      console.log(`[LOG] מתחיל תמלול הקלטה מ-URL: ${audioUrl.substring(0, 50)}...`);
+      
       const transcript = await transcribeAudio(audioUrl);
       console.log(`[LOG] תמלול הושלם, אורך: ${transcript.length} תווים`);
       
@@ -393,34 +397,29 @@ export async function processAnalysis(analysisId: string): Promise<void> {
         throw new Error(`שגיאה בעדכון תוצאות הניתוח: ${resultError.message}`);
       }
       
-      console.log(`[SUCCESS] ניתוח ${analysisId} הושלם בהצלחה ועודכן במסד הנתונים`);
-    } catch (analysisError: any) {
-      console.error(`[ERROR] שגיאה בתהליך התמלול או הניתוח:`, analysisError);
+      console.log(`[SUCCESS] ניתוח ${analysisId} הושלם בהצלחה`);
       
-      // עדכון שגיאה במסד הנתונים
-      const { error: updateError } = await supabase
-        .from('call_analyses')
-        .update({ 
-          report_data: { error: analysisError.message || 'שגיאה לא ידועה בתהליך' },
-          status: 'error'
-        })
-        .eq('id', analysisId);
-        
-      if (updateError) {
-        console.error(`[ERROR] שגיאה בעדכון מצב שגיאה:`, updateError);
-      }
+    } catch (processError: any) {
+      console.error(`[ERROR] שגיאה בעיבוד הניתוח ${analysisId}:`, processError);
       
-      throw analysisError;
+      // עדכון סטטוס הניתוח לשגיאה
+      await updateAnalysisStatus(analysisId, 'error', {
+        error_message: processError.message || 'שגיאה לא ידועה בעיבוד הניתוח'
+      });
+      
+      throw processError;
     }
   } catch (error: any) {
-    console.error(`[ERROR] שגיאה בעיבוד ניתוח ${analysisId}:`, error);
+    console.error(`[ERROR] שגיאה כללית בניתוח ${analysisId}:`, error);
     
-    // עדכון סטטוס לשגיאה
-    await updateAnalysisStatus(
-      analysisId,
-      'error',
-      { error_message: error.message || 'Unknown error' }
-    );
+    // וידוא שהסטטוס מעודכן לשגיאה בכל מקרה
+    try {
+      await updateAnalysisStatus(analysisId, 'error', {
+        error_message: error.message || 'שגיאה לא ידועה'
+      });
+    } catch (updateError) {
+      console.error(`[ERROR] שגיאה בעדכון סטטוס שגיאה:`, updateError);
+    }
     
     throw error;
   }

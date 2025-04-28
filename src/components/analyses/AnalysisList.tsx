@@ -97,13 +97,25 @@ export function AnalysisList() {
           }
           
           const fetchedAnalyses = analysesData || [];
-          setAnalyses(fetchedAnalyses);
+          
+          // בדיקה אם יש הבדל בין הנתונים הקודמים לחדשים
+          const hasChanges = JSON.stringify(fetchedAnalyses) !== JSON.stringify(analyses);
+          if (hasChanges) {
+            console.log('[AnalysisList] עדכון רשימת הניתוחים - זוהו שינויים');
+            setAnalyses(fetchedAnalyses);
+          } else {
+            console.log('[AnalysisList] אין שינויים בנתוני הניתוחים');
+          }
           
           // Check if any analyses are still processing
           const stillProcessing = fetchedAnalyses.some(analysis => 
             analysis.status === 'pending' || analysis.status === 'processing'
           );
-          setHasProcessingAnalyses(stillProcessing);
+          
+          if (stillProcessing !== hasProcessingAnalyses) {
+            console.log(`[AnalysisList] עדכון מצב הניתוחים: ${stillProcessing ? 'יש' : 'אין'} ניתוחים בעיבוד`);
+            setHasProcessingAnalyses(stillProcessing);
+          }
         }
       } catch (error: any) {
         console.error('Error fetching data:', error);
@@ -115,15 +127,16 @@ export function AnalysisList() {
 
     fetchData();
 
-    // Poll for updates every 10 seconds for analyses that are still processing
+    // Poll for updates with a longer interval to reduce refreshes
     const intervalId = setInterval(() => {
       if (hasProcessingAnalyses) {
+        console.log('[AnalysisList] בדיקת עדכונים לניתוחים בעיבוד');
         fetchData();
       }
-    }, 10000);
+    }, 20000); // Increased from 10s to 20s
 
     return () => clearInterval(intervalId);
-  }, [user, hasProcessingAnalyses]); // רק תלויות שלא משתנות בתוך ה-useEffect
+  }, [user, hasProcessingAnalyses, analyses]);
 
   // Format date to dd/mm/yyyy hh:mm
   const formatDate = (dateString: string) => {

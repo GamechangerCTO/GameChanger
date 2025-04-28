@@ -242,9 +242,19 @@ Deno.serve(async (req: Request) => {
     const requestData = await req.json();
     const { analysisId, callFileUrl, analysisType = 'sales', userId } = requestData;
 
+    console.log(`[EDGE-FUNCTION] התקבלה בקשה לניתוח ${analysisId}, סוג: ${analysisType}`);
+    console.log(`[EDGE-FUNCTION] URL קובץ שמע: ${callFileUrl?.substring(0, 50)}...`);
+
     if (!analysisId || !callFileUrl) {
+      console.error('[EDGE-FUNCTION] חסרים פרמטרים נדרשים');
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
+        JSON.stringify({ 
+          error: 'Missing required parameters',
+          debug_info: {
+            analysisId: !!analysisId,
+            callFileUrl: !!callFileUrl
+          }
+        }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -254,12 +264,29 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     // @ts-ignore - Deno API יהיה זמין בסביבת ריצה של סופהבייס
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('[EDGE-FUNCTION] חסרים פרטי התחברות ל-Supabase');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Missing Supabase credentials',
+          debug_info: {
+            supabaseUrl: !!supabaseUrl,
+            supabaseKey: !!supabaseKey
+          }
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // בדיקת הרשאות גישה לניתוח אם יש מזהה משתמש
     if (userId) {
+      console.log(`[EDGE-FUNCTION] בודק הרשאות למשתמש ${userId}`);
       const hasAccess = await checkAnalysisAccess(supabase, analysisId, userId);
       if (!hasAccess) {
+        console.error(`[EDGE-FUNCTION] אין הרשאות למשתמש ${userId} לניתוח ${analysisId}`);
         return new Response(
           JSON.stringify({ error: 'Access denied to this analysis' }),
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -268,12 +295,18 @@ Deno.serve(async (req: Request) => {
     }
 
     // Update analysis status to processing
-    await supabase
+    console.log(`[EDGE-FUNCTION] מעדכן סטטוס ניתוח ${analysisId} ל-processing`);
+    const { error: updateError } = await supabase
       .from('call_analyses')
       .update({ status: 'processing' })
       .eq('id', analysisId);
+      
+    if (updateError) {
+      console.error(`[EDGE-FUNCTION] שגיאה בעדכון סטטוס ניתוח: ${updateError.message}`);
+    }
 
     // Fetch company data for the analysis
+    console.log(`[EDGE-FUNCTION] מבקש נתוני ניתוח וחברה עבור ${analysisId}`);
     const { data: analysisData, error: analysisError } = await supabase
       .from('call_analyses')
       .select('*, company:company_id(*)')
@@ -281,6 +314,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (analysisError || !analysisData) {
+      console.error(`[EDGE-FUNCTION] שגיאה בקבלת נתוני ניתוח: ${analysisError?.message || 'לא נמצא'}`);
       throw new Error(`Failed to fetch analysis data: ${analysisError?.message || 'Not found'}`);
     }
 

@@ -77,9 +77,14 @@ export default function AnalysisPage() {
             analysis_type: analysisData.analysis_type
           });
           
-          setAnalysis(analysisData);
+          if (!analysis || analysis.status !== analysisData.status) {
+            console.log(`עדכון מצב הניתוח מ-${analysis?.status || 'ללא'} ל-${analysisData.status}`);
+            setAnalysis(analysisData);
+          } else {
+            console.log(`לא היה שינוי בסטטוס הניתוח (${analysisData.status})`);
+            setAnalysis(prev => ({...prev, ...analysisData}));
+          }
           
-          // אם הניתוח במצב מושלם, בדוק אם יש תוצאות ותמלול
           if (analysisData.status === 'done') {
             console.log('הניתוח הושלם');
             if (analysisData.transcription) {
@@ -114,11 +119,15 @@ export default function AnalysisPage() {
 
     // Poll for updates if the analysis is still in progress
     const intervalId = setInterval(() => {
+      console.log(`[DEBUG] בדיקת סטטוס ניתוח, מצב נוכחי: ${analysis?.status}`);
+      
       if (analysis && (analysis.status === 'pending' || analysis.status === 'processing')) {
         console.log('מתבצע עדכון אוטומטי של סטטוס הניתוח...');
         fetchAnalysis();
+      } else {
+        console.log('אין צורך בעדכון אוטומטי - הניתוח כבר הושלם או נכשל');
       }
-    }, 10000);
+    }, 15000);
 
     return () => clearInterval(intervalId);
   }, [user, analysisId, analysis?.status, router]);
