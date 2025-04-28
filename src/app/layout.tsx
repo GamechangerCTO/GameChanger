@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth/AuthProvider";
@@ -11,8 +11,12 @@ export const metadata: Metadata = {
   description: "שדרגו את שיחות המכירה והשירות שלכם באמצעות ניתוח מתקדם מבוסס AI. זיהוי חוזקות, הצעות לשיפור וניתוח דאטה של לקוחות.",
   keywords: "ניתוח שיחות, מכירות, שירות לקוחות, בינה מלאכותית, AI",
   authors: [{ name: "צוות GameChanger" }],
-  viewport: "width=device-width, initial-scale=1",
   robots: "index, follow",
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { RequireAuth } from '@/components/auth/RequireAuth';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { AnalysisReport } from '@/components/analyses/AnalysisReport';
@@ -29,7 +29,6 @@ import {
  * משתמש ב-useParams כדי לקבל את מזהה הניתוח מה-URL
  */
 export default function AnalysisPage() {
-  // השתמש ב-useParams במקום לקבל את params כפרמטר
   const params = useParams();
   const analysisId = params.id as string;
   const { user } = useAuth();
@@ -38,99 +37,107 @@ export default function AnalysisPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const fetchAnalysisData = async () => {
+    console.log(`[fetchAnalysisData] התחלת טעינת נתונים לניתוח: ${analysisId}`);
+    if (!user || !analysisId) {
+      console.log('[fetchAnalysisData] אין משתמש או מזהה ניתוח, יוצא.');
+      return;
+    }
+
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data: analysisData, error: analysisError } = await supabase
+        .from('call_analyses')
+        .select('*, company:company_id(*)')
+        .eq('id', analysisId)
+        .single();
+
+      if (analysisError) {
+        console.error('[fetchAnalysisData] שגיאה בשליפת הניתוח:', analysisError);
+        if (analysisError.code === 'PGRST116') {
+          throw new Error('הניתוח המבוקש לא נמצא או שאין לך הרשאה לצפות בו');
+        } else {
+          throw new Error('שגיאה בטעינת פרטי הניתוח: ' + analysisError.message);
+        }
+      }
+
+      if (analysisData) {
+        console.log('[fetchAnalysisData] התקבלו פרטי הניתוח:', {
+          id: analysisData.id, 
+          status: analysisData.status,
+          analysis_type: analysisData.analysis_type
+        });
+        
+        setAnalysis(prevAnalysis => {
+          if (JSON.stringify(prevAnalysis) !== JSON.stringify(analysisData)) {
+            console.log(`[fetchAnalysisData] עדכון מצב הניתוח מ-${prevAnalysis?.status || 'ללא'} ל-${analysisData.status}`);
+            return analysisData;
+          }
+          console.log(`[fetchAnalysisData] אין שינוי בסטטוס הניתוח (${analysisData.status})`);
+          return prevAnalysis;
+        });
+        
+      } else {
+        console.error('[fetchAnalysisData] לא התקבלו פרטי ניתוח למרות שלא הייתה שגיאה');
+        throw new Error('הניתוח המבוקש לא נמצא');
+      }
+      
+      return analysisData;
+    } catch (error: any) {
+      console.error('[fetchAnalysisData] שגיאה כללית בטעינת הניתוח:', error);
+      toast.error(error.message || 'אירעה שגיאה בטעינת פרטי הניתוח');
+      router.push('/analyses');
+      return null;
+    }
+  };
 
   useEffect(() => {
-    async function fetchAnalysis() {
-      try {
-        setIsLoading(true);
-        console.log(`טוען ניתוח עם מזהה: ${analysisId}`);
-        
-        if (!user || !analysisId) {
-          console.log('אין משתמש מחובר או מזהה ניתוח');
-          return;
-        }
+    setIsLoading(true);
+    fetchAnalysisData().finally(() => setIsLoading(false));
+  }, [user, analysisId]);
 
-        // Dynamically fetch the Supabase client
-        const { supabase } = await import('@/lib/supabase');
-        console.log('מתחבר לסופאבייס לקבלת פרטי הניתוח');
-
-        // Fetch the analysis by ID
-        const { data: analysisData, error: analysisError } = await supabase
-          .from('call_analyses')
-          .select('*, company:company_id(*)')  // מוסיף את פרטי החברה
-          .eq('id', analysisId)
-          .single();
-        
-        if (analysisError) {
-          console.error('שגיאה בשליפת הניתוח:', analysisError);
-          if (analysisError.code === 'PGRST116') { // Not found
-            throw new Error('הניתוח המבוקש לא נמצא או שאין לך הרשאה לצפות בו');
-          } else {
-            throw new Error('שגיאה בטעינת פרטי הניתוח: ' + analysisError.message);
+  useEffect(() => {
+    const pollStatus = async () => {
+      console.log(`[Polling] בדיקת סטטוס ניתוח, מצב נוכחי: ${analysis?.status}`);
+      if (analysis && (analysis.status === 'pending' || analysis.status === 'processing')) {
+        console.log('[Polling] הניתוח עדיין בתהליך, טוען נתונים מחדש...');
+        const updatedAnalysis = await fetchAnalysisData();
+        if (updatedAnalysis && (updatedAnalysis.status === 'done' || updatedAnalysis.status === 'error')) {
+          console.log('[Polling] הניתוח הסתיים או נכשל, מפסיק את הבדיקות התקופתיות.');
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
           }
         }
-
-        if (analysisData) {
-          console.log('התקבלו פרטי הניתוח:', {
-            id: analysisData.id, 
-            status: analysisData.status,
-            analysis_type: analysisData.analysis_type
-          });
-          
-          if (!analysis || analysis.status !== analysisData.status) {
-            console.log(`עדכון מצב הניתוח מ-${analysis?.status || 'ללא'} ל-${analysisData.status}`);
-            setAnalysis(analysisData);
-          } else {
-            console.log(`לא היה שינוי בסטטוס הניתוח (${analysisData.status})`);
-            setAnalysis(prev => ({...prev, ...analysisData}));
-          }
-          
-          if (analysisData.status === 'done') {
-            console.log('הניתוח הושלם');
-            if (analysisData.transcription) {
-              console.log(`יש תמלול באורך ${analysisData.transcription.length} תווים`);
-            } else {
-              console.warn('אין תמלול למרות שהניתוח הושלם');
-            }
-            
-            if (analysisData.report_data) {
-              console.log('התקבלו תוצאות ניתוח:', analysisData.report_data);
-            } else {
-              console.warn('אין תוצאות ניתוח למרות שהניתוח הושלם');
-            }
-          } else {
-            console.log(`סטטוס הניתוח: ${analysisData.status}`);
-          }
-        } else {
-          console.error('לא התקבלו פרטי ניתוח למרות שלא הייתה שגיאה');
-          throw new Error('הניתוח המבוקש לא נמצא');
+      } else {
+        console.log('[Polling] הניתוח לא במצב עיבוד או אין נתונים, מפסיק בדיקות.');
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
         }
-      } catch (error: any) {
-        console.error('שגיאה כללית בטעינת הניתוח:', error);
-        toast.error(error.message || 'אירעה שגיאה בטעינת פרטי הניתוח');
-        // Redirect back to list if analysis not found or error occurs
-        router.push('/analyses'); 
-      } finally {
-        setIsLoading(false);
+      }
+    };
+
+    if (!isLoading && analysis && (analysis.status === 'pending' || analysis.status === 'processing')) {
+        console.log('[Polling] מתחיל בדיקות תקופתיות...');
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+        intervalRef.current = setInterval(pollStatus, 15000);
+    } else {
+      if (intervalRef.current) {
+          console.log('[Polling] מנקה אינטרוול קיים.');
+          clearInterval(intervalRef.current);
       }
     }
 
-    fetchAnalysis();
-
-    // Poll for updates if the analysis is still in progress
-    const intervalId = setInterval(() => {
-      console.log(`[DEBUG] בדיקת סטטוס ניתוח, מצב נוכחי: ${analysis?.status}`);
-      
-      if (analysis && (analysis.status === 'pending' || analysis.status === 'processing')) {
-        console.log('מתבצע עדכון אוטומטי של סטטוס הניתוח...');
-        fetchAnalysis();
-      } else {
-        console.log('אין צורך בעדכון אוטומטי - הניתוח כבר הושלם או נכשל');
+    return () => {
+      if (intervalRef.current) {
+        console.log('[Cleanup] מנקה אינטרוול.');
+        clearInterval(intervalRef.current);
       }
-    }, 15000);
-
-    return () => clearInterval(intervalId);
-  }, [user, analysisId, analysis?.status, router]);
+    };
+  }, [isLoading, analysis]);
 
   const handleDeleteClick = () => {
     setDeleteDialogOpen(true);
@@ -140,7 +147,6 @@ export default function AnalysisPage() {
     try {
       setIsDeleting(true);
       
-      // קריאה ל-API במקום ישירות לפונקציה
       const response = await fetch(`/api/analyses/${analysisId}`, {
         method: 'DELETE',
       });
@@ -151,7 +157,6 @@ export default function AnalysisPage() {
       }
       
       toast.success('הניתוח נמחק בהצלחה');
-      // ניווט חזרה לדף הניתוחים
       router.push('/analyses');
     } catch (error: any) {
       console.error('שגיאה במחיקת ניתוח:', error);
@@ -219,7 +224,6 @@ export default function AnalysisPage() {
           )}
         </div>
 
-        {/* דיאלוג אישור מחיקה */}
         <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
           <AlertDialogContent className="bg-gray-900 border border-gray-800 text-white">
             <AlertDialogHeader>
