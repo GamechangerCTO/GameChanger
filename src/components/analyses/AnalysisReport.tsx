@@ -212,6 +212,22 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
             <p className="text-xs text-gray-500 text-center mt-4">
               תהליך הניתוח עשוי להימשך מספר דקות. העמוד יתעדכן אוטומטית כאשר הניתוח יושלם.
             </p>
+            
+            <div className="border-t border-gray-700 pt-4 mt-4">
+              <p className="text-sm text-gray-400 mb-2">אם התהליך נתקע, ניתן להפעיל אותו באופן ידני:</p>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const webhookKey = 'webhook_secret_key_2025';
+                  window.open(`/trigger-analysis.js?id=${analysis.id}&key=${webhookKey}`, '_blank');
+                }}
+                className="w-full border-orange-500 text-orange-500 hover:bg-orange-500/10 hover:text-orange-400"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                הפעל תהליך ידנית
+              </Button>
+            </div>
           </CardContent>
         </Card>
       );

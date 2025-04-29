@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { processAnalysis } from '@/lib/api';
 
-// הגדרת הפונקציה עם זמן ריצה ארוך יותר
+// הגדרת הפונקציה כ-Serverless Function במקום Edge Function
+export const runtime = 'nodejs'; // חשוב - לא edge!
 export const maxDuration = 300; // 5 דקות מקסימום
 
 export async function POST(request: NextRequest) {
@@ -22,7 +23,10 @@ export async function POST(request: NextRequest) {
     console.log(`[API:WEBHOOK-PROCESS] מזהה ניתוח שהתקבל: ${analysisId || 'חסר'}`);
 
     // בדיקת אבטחה בסיסית
-    if (secretKey !== process.env.WEBHOOK_SECRET_KEY) {
+    const webhookSecret = process.env.WEBHOOK_SECRET_KEY;
+    console.log(`[API:WEBHOOK-PROCESS] בדיקת מפתח אבטחה. קיים מפתח בסביבה: ${!!webhookSecret}`);
+    
+    if (secretKey !== webhookSecret) {
       console.error('[API:WEBHOOK-PROCESS] מפתח סודי לא תקין');
       return NextResponse.json(
         { error: 'מפתח סודי לא תקין' },

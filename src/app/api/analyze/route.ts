@@ -84,23 +84,48 @@ export async function POST(request: NextRequest) {
     console.log(`[API:ANALYZE] קורא ל-webhook לעיבוד ניתוח ${analysisId}`);
     
     const webhookSecretKey = process.env.WEBHOOK_SECRET_KEY || 'default_webhook_key';
+    console.log(`[API:ANALYZE] מפתח webhook קיים בסביבה: ${!!process.env.WEBHOOK_SECRET_KEY}`);
     
     try {
       // שליחת בקשה לwebhook הייעודי לעיבוד ארוך
-      const webhookUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://game-changer-alpha.vercel.app';
+      // בניית כתובת מלאה של הwebhook באופן ישיר (לא משתמש במשתנה סביבה שעלול להיות חסר)
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 
+                      process.env.VERCEL_URL || 
+                      'https://game-changer-alpha.vercel.app';
       
-      fetch(`${webhookUrl}/api/webhook/process-analysis`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          analysisId,
-          secretKey: webhookSecretKey
-        }),
-      }).catch(error => {
-        console.error(`[API:ANALYZE] שגיאה בשליחת בקשה לwebhook: ${error.message}`);
-      });
+      console.log(`[API:ANALYZE] כתובת האתר שבשימוש: ${siteUrl}`);
+      
+      const webhookUrl = `${siteUrl}/api/webhook/process-analysis`;
+      console.log(`[API:ANALYZE] שולח קריאה לwebhook בכתובת: ${webhookUrl}`);
+      
+      // יצירת מערך של ניסיונות שליחה
+      const sendWebhookRequest = async () => {
+        const response = await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            analysisId,
+            secretKey: webhookSecretKey
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Webhook responded with status: ${response.status}`);
+        }
+        
+        return await response.json();
+      };
+      
+      // ננסה לשלוח את הwebhook, אך לא נחכה לתשובה (fire and forget)
+      sendWebhookRequest()
+        .then(result => {
+          console.log('[API:ANALYZE] ה-webhook החזיר תשובה:', result);
+        })
+        .catch(error => {
+          console.error(`[API:ANALYZE] שגיאה בשליחת בקשה לwebhook: ${error.message}`);
+        });
       
       console.log('[API:ANALYZE] הבקשה ל-webhook נשלחה בהצלחה');
     } catch (webhookError) {
