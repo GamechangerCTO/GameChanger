@@ -191,22 +191,40 @@ export async function transcribeAudio(audioUrl: string): Promise<string> {
       // תמלול השמע באמצעות OpenAI
       console.log('[TRANSCRIBE] שולח קובץ לתמלול ב-OpenAI עם מודל gpt-4o-transcribe');
       const openai = getOpenAI();
-      const transcriptionResponse = await openai.audio.transcriptions.create({
-        file: file,
-        model: 'gpt-4o-transcribe',
-        language: 'he', // שפה עברית
-      });
-      
+      let transcriptionResponse;
+      try {
+        transcriptionResponse = await openai.audio.transcriptions.create({
+          file: file,
+          model: 'gpt-4o-transcribe',
+          language: 'he', // שפה עברית
+        });
+        console.log('[TRANSCRIBE] קריאת API ל-OpenAI transcribe הסתיימה');
+      } catch (openaiError: any) {
+        console.error('[TRANSCRIBE] שגיאת API מ-OpenAI במהלך התמלול:', openaiError);
+        // נבדוק אם יש מידע נוסף על השגיאה מה-API
+        if (openaiError.response) {
+          console.error('[TRANSCRIBE] פרטי שגיאת API מ-OpenAI:', openaiError.response.status, openaiError.response.data);
+        }
+        throw new Error(`שגיאת API מ-OpenAI בתמלול: ${openaiError.message}`);
+      }
+
       if (!transcriptionResponse.text) {
         console.warn('[TRANSCRIBE] התקבל תמלול ריק מ-OpenAI');
         return 'תמלול ריק';
       }
-      
+
       console.log(`[TRANSCRIBE] תמלול הושלם בהצלחה. אורך התמלול: ${transcriptionResponse.text.length} תווים`);
       return transcriptionResponse.text;
     } catch (error: any) {
-      console.error('[TRANSCRIBE] שגיאה בתמלול עם OpenAI SDK:', error);
-      throw new Error(`שגיאה בתמלול עם OpenAI: ${error.message}`);
+      // שגיאה זו תופסת גם שגיאות מה- try-catch הפנימי וגם שגיאות אחרות
+      console.error('[TRANSCRIBE] שגיאה בשלב שליחת קובץ או קבלת תמלול מ-OpenAI:', error);
+      // חשוב לוודא שלא זורקים שגיאה כפולה אם היא כבר טופלה
+      if (!(error.message.startsWith('שגיאת API מ-OpenAI בתמלול:'))) {
+         throw new Error(`שגיאה בשלב התמלול מול OpenAI: ${error.message}`);
+      } else {
+        // אם השגיאה כבר טופלה והודפסה, פשוט נזרוק אותה הלאה
+        throw error;
+      }
     }
   } catch (error: any) {
     console.error('[TRANSCRIBE] שגיאה כללית בתמלול השמע:', error);
@@ -223,7 +241,8 @@ export async function analyzeTranscript(
   try {
     // בחירת הפרומפט המתאים לסוג הניתוח
     let promptContent = '';
-    
+    console.log(`[ANALYZE-TRANSCRIPT] בחירת פרומפט עבור סוג ניתוח: ${analysisType}`);
+
     switch (analysisType) {
       case 'sales':
         promptContent = salesCallPrompt(companyData, transcript);
@@ -235,24 +254,49 @@ export async function analyzeTranscript(
         promptContent = appointmentSettingPrompt(companyData, transcript);
         break;
       default:
+        console.warn(`[ANALYZE-TRANSCRIPT] סוג ניתוח לא מוכר: ${analysisType}. משתמש בפרומפט מכירות כברירת מחדל.`);
         promptContent = salesCallPrompt(companyData, transcript);
     }
-    
-    // ניתוח הטקסט באמצעות OpenAI עם המודל החדש gpt-4.1-2025-04-14
+    console.log(`[ANALYZE-TRANSCRIPT] אורך הפרומפט שנוצר: ${promptContent.length} תווים`);
+
+    // ניתוח הטקסט באמצעות OpenAI
+    console.log('[ANALYZE-TRANSCRIPT] שולח תמלול לניתוח ב-OpenAI עם מודל gpt-4.1-2025-04-14');
     const openai = getOpenAI();
-    const analysisCompletion = await openai.chat.completions.create({
-      model: 'gpt-4.1-2025-04-14',
-      messages: [
-        { role: 'system', content: promptContent },
-      ],
-      temperature: 0.1,
-      response_format: { type: "json_object" }
-    });
-    
-    return analysisCompletion.choices[0].message.content || '';
+    let analysisCompletion;
+    try {
+      analysisCompletion = await openai.chat.completions.create({
+        model: 'gpt-4.1-2025-04-14',
+        messages: [
+          { role: 'system', content: promptContent },
+        ],
+        temperature: 0.1,
+        response_format: { type: "json_object" }
+      });
+      console.log('[ANALYZE-TRANSCRIPT] קריאת API ל-OpenAI chat completions הסתיימה');
+    } catch (openaiError: any) {
+      console.error('[ANALYZE-TRANSCRIPT] שגיאת API מ-OpenAI במהלך הניתוח:', openaiError);
+      if (openaiError.response) {
+        console.error('[ANALYZE-TRANSCRIPT] פרטי שגיאת API מ-OpenAI:', openaiError.response.status, openaiError.response.data);
+      }
+      throw new Error(`שגיאת API מ-OpenAI בניתוח: ${openaiError.message}`);
+    }
+
+    const analysisResult = analysisCompletion.choices[0].message.content || '';
+    if (!analysisResult) {
+      console.warn('[ANALYZE-TRANSCRIPT] התקבלה תוצאת ניתוח ריקה מ-OpenAI');
+    } else {
+      console.log(`[ANALYZE-TRANSCRIPT] ניתוח התמלול הושלם בהצלחה. אורך התוצאה: ${analysisResult.length} תווים`);
+    }
+    return analysisResult;
+
   } catch (error: any) {
-    console.error('Error analyzing transcript:', error);
-    throw new Error(`Failed to analyze transcript: ${error.message}`);
+    console.error('[ANALYZE-TRANSCRIPT] שגיאה כללית בניתוח התמלול:', error);
+    // וידוא שלא זורקים שגיאה כפולה
+     if (!(error.message.startsWith('שגיאת API מ-OpenAI בניתוח:'))) {
+       throw new Error(`שגיאה בניתוח התמלול: ${error.message}`);
+     } else {
+       throw error;
+     }
   }
 }
 
