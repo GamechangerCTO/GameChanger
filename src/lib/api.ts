@@ -382,6 +382,7 @@ export async function processAnalysis(analysisId: string): Promise<void> {
     }
     
     console.log(`[LOG] מבקש נתוני ניתוח ${analysisId}`);
+    console.log(`[DEBUG] לפני ביצוע שאילתת SELECT ל-call_analyses עבור ${analysisId}`);
     
     // קבלת נתוני הניתוח
     const { data: existingAnalysis, error: checkError } = await supabase
@@ -390,8 +391,11 @@ export async function processAnalysis(analysisId: string): Promise<void> {
       .eq('id', analysisId)
       .single();
       
+    console.log(`[DEBUG] אחרי ביצוע שאילתת SELECT ל-call_analyses עבור ${analysisId}`);
+      
     if (checkError) {
       console.error(`[ERROR] שגיאה בקבלת נתוני ניתוח ${analysisId}:`, JSON.stringify(checkError, null, 2));
+      console.log(`[DEBUG] מעדכן סטטוס לשגיאה עקב כשל בקבלת נתונים`);
       await updateAnalysisStatus(analysisId, 'error', { error_message: `שגיאה בקבלת נתוני ניתוח: ${checkError.message}` });
       throw new Error(`שגיאה בקבלת נתוני ניתוח: ${checkError.message}`);
     }
