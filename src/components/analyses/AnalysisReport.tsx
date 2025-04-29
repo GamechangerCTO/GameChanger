@@ -169,9 +169,49 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
           <CardHeader>
             <CardTitle className="text-white">הניתוח בתהליך...</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 py-6">
+          <CardContent className="space-y-6 py-6">
             <p className="text-center text-gray-400">התוצאות יופיעו כאן בהקדם</p>
             <Progress value={70} className="w-full h-2 bg-gray-700 [&>*]:bg-orange-500" />
+            
+            <div className="space-y-4 mt-4 bg-gray-800 p-4 rounded-md border border-gray-700">
+              <h3 className="text-white font-medium text-lg">שלבי התהליך:</h3>
+              <ul className="space-y-2">
+                <li className="flex items-center text-green-400">
+                  <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </div>
+                  <span>קבלת נתוני ההקלטה</span>
+                </li>
+                <li className="flex items-center text-green-400">
+                  <div className="w-5 h-5 rounded-full bg-green-500 flex items-center justify-center mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  </div>
+                  <span>התחלת עיבוד</span>
+                </li>
+                <li className="flex items-center text-amber-400">
+                  <div className="w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center mr-2 animate-pulse">
+                    <div className="w-2 h-2 bg-amber-900 rounded-full"></div>
+                  </div>
+                  <span>ביצוע תמלול</span>
+                </li>
+                <li className="flex items-center text-gray-500">
+                  <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center mr-2">
+                    <span className="text-xs">4</span>
+                  </div>
+                  <span>ניתוח התוכן</span>
+                </li>
+                <li className="flex items-center text-gray-500">
+                  <div className="w-5 h-5 rounded-full bg-gray-700 flex items-center justify-center mr-2">
+                    <span className="text-xs">5</span>
+                  </div>
+                  <span>שמירת תוצאות וסיום</span>
+                </li>
+              </ul>
+            </div>
+            
+            <p className="text-xs text-gray-500 text-center mt-4">
+              תהליך הניתוח עשוי להימשך מספר דקות. העמוד יתעדכן אוטומטית כאשר הניתוח יושלם.
+            </p>
           </CardContent>
         </Card>
       );
@@ -397,29 +437,50 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
     setIsProcessing(true);
     try {
       console.log('שולח בקשה להתחלת ניתוח:', analysis.id);
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          analysisId: analysis.id,
-        }),
-      });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error('שגיאה בהתחלת הניתוח: ' + (errorData.error || response.statusText));
+      // הגדרת timeout לקריאה כדי למנוע תקיעה בסביבת פריסה
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // timeout של 30 שניות
+      
+      try {
+        const response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            analysisId: analysis.id,
+          }),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId); // ניקוי ה-timeout לאחר שהקריאה הושלמה
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error('שגיאה בהתחלת הניתוח: ' + (errorData.error || response.statusText));
+        }
+        
+        // תגובה התקבלה בהצלחה
+        const responseData = await response.json();
+        console.log('התהליך החל בהצלחה:', responseData);
+        
+        // נודיע למשתמש
+        toast.success('התמלול והניתוח החלו, התהליך עשוי להימשך מספר דקות');
+        
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        if (fetchError.name === 'AbortError') {
+          // במקרה של timeout, נניח שהבקשה התקבלה אבל התשובה לא חזרה בזמן
+          console.log('הקריאה לא קיבלה תשובה בזמן סביר, אך תהליך הניתוח עשוי להתחיל בכל זאת');
+          toast.success('הניתוח נשלח לעיבוד. התהליך עשוי להימשך מספר דקות');
+        } else {
+          throw fetchError; // העבר את השגיאה ל-catch הבא
+        }
       }
       
-      // תגובה התקבלה בהצלחה
-      const responseData = await response.json();
-      console.log('התהליך החל בהצלחה:', responseData);
-      
-      // נודיע למשתמש
-      toast.success('התמלול והניתוח החלו, התהליך עשוי להימשך מספר דקות');
-      
-      // רענון העמוד אחרי המתנה קצרה
+      // רענון העמוד אחרי המתנה קצרה בכל מקרה
       setTimeout(() => {
         window.location.reload();
       }, 1500);

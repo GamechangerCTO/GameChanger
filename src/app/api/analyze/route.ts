@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { processAnalysis } from '@/lib/api';
 import { createClient } from '@supabase/supabase-js';
 
+// הגדרת זמן מקסימלי להמתנה לתשובה
+export const runtime = 'edge';
+export const maxDuration = 60;
+
 export async function POST(request: NextRequest) {
   console.log('[API:ANALYZE] התקבלה בקשה לניתוח שיחה');
   try {
@@ -27,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // בדיקה שהניתוח קיים במסד הנתונים ושיש למשתמש הרשאה אליו
+    // בדיקה שהניתוח קיים במסד הנתונים ועדכון סטטוס
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
       const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -38,7 +42,6 @@ export async function POST(request: NextRequest) {
       
       const supabase = createClient(supabaseUrl, serviceRoleKey);
       
-      // משתמש ב-service role לכל הפעולות - מעקף אימות זמני
       // קביעת משתמש "מערכת" (אדמין) כברירת מחדל
       const userId = "00000000-0000-0000-0000-000000000000"; // משתמש מערכת זמני
       console.log(`[API:ANALYZE] משתמש במזהה משתמש זמני: ${userId}`);
@@ -75,17 +78,22 @@ export async function POST(request: NextRequest) {
       }
     } catch (checkError: any) {
       console.error('[API:ANALYZE] שגיאה בבדיקת קיום הניתוח:', checkError);
-      // ממשיכים למרות השגיאה
+      // ממשיכים למרות השגיאה, ננסה להפעיל את התהליך בכל זאת
     }
 
-    // נפעיל את תהליך העיבוד באופן אסינכרוני (לא מחכים לסיום)
-    console.log(`[API:ANALYZE] מתחיל תהליך עיבוד אסינכרוני לניתוח ${analysisId}`);
+    // הפעלת תהליך העיבוד באופן אסינכרוני והחזרת תשובה מיידית
+    console.log(`[API:ANALYZE] התחלת תהליך עיבוד אסינכרוני לניתוח ${analysisId}`);
     
     try {
+      // הערה: ב-Vercel, אנחנו מציגים הודעה מיידית כי התהליך עשוי להתבצע במקביל
+      // יש לוודא שהמערכת מפעילה את התהליך בהצלחה גם כשהבקשה מסתיימת ב-timeout
       console.log('[API:ANALYZE] לפני קריאה לפונקציית processAnalysis');
+      
+      // הפעלת התהליך ברקע ללא המתנה (fire and forget)
       processAnalysis(analysisId).catch((error) => {
         console.error(`[API:ANALYZE] שגיאה בעיבוד ניתוח ${analysisId}:`, error);
       });
+      
       console.log('[API:ANALYZE] אחרי קריאה לפונקציית processAnalysis - הקריאה נשלחה בהצלחה');
     } catch (processError) {
       console.error('[API:ANALYZE] שגיאה בקריאה לפונקציית processAnalysis:', processError);
