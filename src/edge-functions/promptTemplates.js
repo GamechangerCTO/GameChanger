@@ -153,11 +153,19 @@ export function getPromptByAnalysisType(company, transcript, analysisType) {
   switch (analysisType) {
     case 'sales':
       return salesCallPrompt(company, transcript);
+    case 'sales_followup':
+      // כרגע משתמש בתבנית של מכירות רגילה עד שיהיה תבנית ייעודית
+      return salesCallPrompt(company, transcript);
     case 'service':
       return serviceCallPrompt(company, transcript);
     case 'appointment':
+    case 'appointment_setting':
+      return appointmentSettingPrompt(company, transcript);
+    case 'appointment_followup':
+      // כרגע משתמש בתבנית של תיאום פגישה רגילה עד שיהיה תבנית ייעודית
       return appointmentSettingPrompt(company, transcript);
     default:
-      return salesCallPrompt(company, transcript); // Default to sales call prompt
+      console.warn(`[EDGE-PROMPT] סוג ניתוח לא מוכר: ${analysisType}. משתמש בפרומפט מכירות כברירת מחדל.`);
+      return salesCallPrompt(company, transcript);
   }
 } 

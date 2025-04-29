@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { createClient } from '@supabase/supabase-js';
-import { salesCallPrompt, serviceCallPrompt, appointmentSettingPrompt } from './prompts';
+import { salesCallPrompt, serviceCallPrompt, appointmentSettingPrompt, getPromptByAnalysisType } from './prompts';
 
 // פונקציה ליצירת מופע של OpenAI עם מפתח ה-API
 export const getOpenAI = () => {
@@ -239,24 +239,15 @@ export async function analyzeTranscript(
   analysisType: string
 ): Promise<string> {
   try {
-    // בחירת הפרומפט המתאים לסוג הניתוח
-    let promptContent = '';
+    // בחירת הפרומפט המתאים לסוג הניתוח באמצעות פונקציית getPromptByAnalysisType
     console.log(`[ANALYZE-TRANSCRIPT] בחירת פרומפט עבור סוג ניתוח: ${analysisType}`);
-
-    switch (analysisType) {
-      case 'sales':
-        promptContent = salesCallPrompt(companyData, transcript);
-        break;
-      case 'service':
-        promptContent = serviceCallPrompt(companyData, transcript);
-        break;
-      case 'appointment':
-        promptContent = appointmentSettingPrompt(companyData, transcript);
-        break;
-      default:
-        console.warn(`[ANALYZE-TRANSCRIPT] סוג ניתוח לא מוכר: ${analysisType}. משתמש בפרומפט מכירות כברירת מחדל.`);
-        promptContent = salesCallPrompt(companyData, transcript);
+    
+    // המרת סוג הניתוח 'appointment' ל-'appointment_setting' לתאימות
+    if (analysisType === 'appointment') {
+      analysisType = 'appointment_setting';
     }
+    
+    const promptContent = getPromptByAnalysisType(companyData, transcript, analysisType);
     console.log(`[ANALYZE-TRANSCRIPT] אורך הפרומפט שנוצר: ${promptContent.length} תווים`);
 
     // ניתוח הטקסט באמצעות OpenAI
