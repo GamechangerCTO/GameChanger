@@ -18,6 +18,9 @@ export default function AnalysesPage() {
             <p className="text-gray-400 text-lg">
               העלו הקלטות שיחה לניתוח וקבלו תובנות מעמיקות על בסיס AI
             </p>
+            <p className="text-gray-500">
+              תהליך העבודה: <span className="text-blue-400">1.</span> העלאת קובץ השיחה &rarr; <span className="text-blue-400">2.</span> הפעלת התמלול והניתוח באופן יזום &rarr; <span className="text-blue-400">3.</span> קבלת תוצאות הניתוח
+            </p>
           </div>
 
           <Tabs defaultValue="list" className="w-full">

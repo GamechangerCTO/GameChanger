@@ -231,49 +231,41 @@ export function NewAnalysisForm() {
       // 4. יוצר אובייקט עם כל המידע הדרוש לניתוח
       setProgress(75);
 
-      // התחלת תהליך העיבוד ב-server-side
-      // לא נמתין כאן, כי העיבוד יכול לקחת זמן רב
-      // נריץ את זה במקביל כדי לא לתקוע את הממשק
-      try {
-        console.log('שולח בקשה להתחלת ניתוח עם ID:', analysisData.id);
-        const response = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            analysisId: analysisData.id,
-          }),
-        });
-        
-        console.log('התקבלה תשובה מהשרת:', response.status, response.statusText);
-        
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error('שגיאה בתגובת השרת:', errorData);
-          throw new Error('שגיאה בהתחלת הניתוח: ' + (errorData.error || response.statusText));
-        }
-        
-        // תגובה התקבלה בהצלחה
-        const responseData = await response.json();
-        console.log('התהליך החל בהצלחה:', responseData);
-        
-        // נודיע למשתמש
-        toast.success('התמלול החל, התהליך עשוי להימשך מספר דקות');
-      } catch (fetchError: any) {
-        console.error('שגיאה בקריאה ל-API:', fetchError);
-        // נמשיך בתהליך למרות השגיאה, אבל נודיע למשתמש
-        toast.error('שגיאה בהתחלת תהליך הניתוח: ' + fetchError.message);
-      }
+      // מסירים את הקריאה האוטומטית לתהליך הניתוח
+      // במקום זאת, המשתמש יצטרך ללחוץ על כפתור "שלח לניתוח" בדף הניתוח עצמו
+      // try {
+      //   const response = await fetch('/api/analyze', {
+      //     method: 'POST',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //     },
+      //     body: JSON.stringify({
+      //       analysisId: analysisData.id,
+      //     }),
+      //   });
+      //   
+      //   if (!response.ok) {
+      //     const errorData = await response.json();
+      //     throw new Error('שגיאה בהתחלת הניתוח: ' + (errorData.error || response.statusText));
+      //   }
+      //   
+      //   // תגובה התקבלה בהצלחה
+      //   const responseData = await response.json();
+      //   console.log('התהליך החל בהצלחה:', responseData);
+      //   
+      //   // נודיע למשתמש
+      //   toast.success('התמלול החל, התהליך עשוי להימשך מספר דקות');
+      // } catch (fetchError: any) {
+      //   console.error('שגיאה בקריאה ל-API:', fetchError);
+      //   // נמשיך בתהליך למרות השגיאה, אבל נודיע למשתמש
+      //   toast.error('שגיאה בהתחלת תהליך הניתוח: ' + fetchError.message);
+      // }
 
       setProgress(100);
-      toast.success('הקובץ הועלה בהצלחה. הניתוח יתבצע ברקע ויהיה זמין בקרוב');
+      toast.success('הקובץ הועלה בהצלחה. לחץ על כפתור "שלח לניתוח" כדי להתחיל את התהליך');
       
-      // Optionally reset the form or navigate away
-      form.reset(); 
-      // router.push(`/analyses/${analysisData.id}`); // Navigate to specific analysis if needed
-      // Maybe just refresh the list or navigate to the list tab
-      router.push('/analyses'); // Go back to the list view
+      // ניווט לדף הניתוח
+      router.push(`/analyses/${analysisData.id}`);
 
     } catch (error: any) {
       console.error('Error uploading file:', error);

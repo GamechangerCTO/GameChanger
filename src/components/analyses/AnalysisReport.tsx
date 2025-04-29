@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, AlertTriangle, AlertCircle, LockIcon } from 'lucide-react';
+import { Play, Pause, AlertTriangle, AlertCircle, LockIcon, Send } from 'lucide-react';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { toast } from 'react-hot-toast';
 
 const analysisTypeLabels: Record<string, string> = {
   sales: 'שיחת מכירה',
@@ -29,6 +30,7 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
   const { user } = useAuth();
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // בדיקת הרשאות בטעינה
   useEffect(() => {
@@ -126,7 +128,42 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
 
   // Render content based on analysis status
   const renderContent = () => {
-    if (analysis.status === 'pending' || analysis.status === 'processing') {
+    if (analysis.status === 'pending') {
+      return (
+        <Card className="overflow-hidden bg-gray-900 border border-gray-800">
+          <CardHeader>
+            <CardTitle className="text-white">שיחה מוכנה לניתוח</CardTitle>
+            <CardDescription className="text-gray-400">
+              הקובץ הועלה בהצלחה. לחץ על הכפתור למטה להתחלת תהליך התמלול והניתוח
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 py-6">
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-center text-gray-400">יש להתחיל את תהליך הניתוח באופן יזום</p>
+              <Button 
+                onClick={startAnalysis} 
+                disabled={isProcessing}
+                className="bg-orange-500 hover:bg-orange-600 text-white"
+              >
+                {isProcessing ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-t-2 border-r-2 border-white rounded-full animate-spin mr-2"></div>
+                    מתחיל...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Send className="h-4 w-4" />
+                    שלח לתמלול וניתוח
+                  </span>
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (analysis.status === 'processing') {
       return (
         <Card className="overflow-hidden bg-gray-900 border border-gray-800">
           <CardHeader>
@@ -134,7 +171,7 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
           </CardHeader>
           <CardContent className="space-y-4 py-6">
             <p className="text-center text-gray-400">התוצאות יופיעו כאן בהקדם</p>
-            <Progress value={analysis.status === 'processing' ? 70 : 30} className="w-full h-2 bg-gray-700 [&>*]:bg-orange-500" />
+            <Progress value={70} className="w-full h-2 bg-gray-700 [&>*]:bg-orange-500" />
           </CardContent>
         </Card>
       );
@@ -352,6 +389,48 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
       </Card>
     );
   }
+
+  // פונקציה לשליחת ניתוח לעיבוד
+  const startAnalysis = async () => {
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
+    try {
+      console.log('שולח בקשה להתחלת ניתוח:', analysis.id);
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          analysisId: analysis.id,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error('שגיאה בהתחלת הניתוח: ' + (errorData.error || response.statusText));
+      }
+      
+      // תגובה התקבלה בהצלחה
+      const responseData = await response.json();
+      console.log('התהליך החל בהצלחה:', responseData);
+      
+      // נודיע למשתמש
+      toast.success('התמלול והניתוח החלו, התהליך עשוי להימשך מספר דקות');
+      
+      // רענון העמוד אחרי המתנה קצרה
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+      
+    } catch (error: any) {
+      console.error('שגיאה בהפעלת הניתוח:', error);
+      toast.error(error.message || 'שגיאה בהפעלת ניתוח');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">

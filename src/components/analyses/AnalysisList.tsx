@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Trash2 } from 'lucide-react';
+import { Trash2, Send } from 'lucide-react';
 
 type AnalysisStatus = 'pending' | 'processing' | 'done' | 'error';
 
@@ -61,6 +61,7 @@ export function AnalysisList() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [analysisToDelete, setAnalysisToDelete] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [processingAnalysisIds, setProcessingAnalysisIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     async function fetchData() {
@@ -185,6 +186,55 @@ export function AnalysisList() {
     }
   };
 
+  // פונקציה לשליחת ניתוח לעיבוד
+  const startAnalysis = async (analysisId: string) => {
+    if (processingAnalysisIds.has(analysisId)) return;
+    
+    setProcessingAnalysisIds(prev => new Set([...prev, analysisId]));
+    try {
+      console.log('שולח בקשה להתחלת ניתוח:', analysisId);
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          analysisId: analysisId,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error('שגיאה בהתחלת הניתוח: ' + (errorData.error || response.statusText));
+      }
+      
+      // תגובה התקבלה בהצלחה
+      const responseData = await response.json();
+      console.log('התהליך החל בהצלחה:', responseData);
+      
+      // עדכון הרשימה המקומית
+      setAnalyses(prevAnalyses => 
+        prevAnalyses.map(analysis => 
+          analysis.id === analysisId 
+            ? { ...analysis, status: 'processing' as AnalysisStatus } 
+            : analysis
+        )
+      );
+      
+      // נודיע למשתמש
+      toast.success('התמלול והניתוח החלו, התהליך עשוי להימשך מספר דקות');
+    } catch (error: any) {
+      console.error('שגיאה בהפעלת הניתוח:', error);
+      toast.error(error.message || 'שגיאה בהפעלת ניתוח');
+    } finally {
+      setProcessingAnalysisIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(analysisId);
+        return newSet;
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <Card className="overflow-hidden bg-gray-900 border border-gray-800">
@@ -260,38 +310,61 @@ export function AnalysisList() {
                   {analysisTypeLabels[analysis.analysis_type] || analysis.analysis_type}
                 </TableCell>
                 <TableCell>
-                  <Badge 
-                    className={`${statusColors[analysis.status as AnalysisStatus]} border px-2 py-1 text-xs font-semibold`}
-                  >
-                    {statusLabels[analysis.status as AnalysisStatus]}
+                  <Badge className={`${statusColors[analysis.status as AnalysisStatus] || 'bg-gray-500'} border px-2 py-1 text-xs font-semibold`}>
+                    {statusLabels[analysis.status as AnalysisStatus] || analysis.status}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-left text-gray-300">
-                  {analysis.status === 'done' ? (
-                    analysis.report_data?.summary?.totalScore ?? 'לא זמין'
+                  {analysis.status === 'done' && analysis.report_data?.summary?.totalScore ? (
+                    <span className="font-semibold">
+                      {Math.round(
+                        (analysis.report_data.summary.totalScore / 
+                         (7 * (analysis.report_data?.analysis?.length || 28))) * 100
+                      )}
+                    </span>
                   ) : (
-                    '-'
+                    <span className="text-gray-500">-</span>
                   )}
                 </TableCell>
-                <TableCell className="text-right flex justify-end gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
+                <TableCell className="text-right space-x-2 rtl:space-x-reverse">
+                  {analysis.status === 'pending' ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => startAnalysis(analysis.id)}
+                      disabled={processingAnalysisIds.has(analysis.id)}
+                      className="border-blue-500 text-blue-500 hover:bg-blue-500/10 hover:text-blue-400"
+                    >
+                      {processingAnalysisIds.has(analysis.id) ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-3 h-3 border-t-2 border-r-2 border-blue-500 rounded-full animate-spin"></div>
+                          מתחיל...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <Send className="h-3 w-3" />
+                          שלח לניתוח
+                        </span>
+                      )}
+                    </Button>
+                  ) : null}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
                     asChild
-                    disabled={analysis.status === 'pending' || analysis.status === 'processing'}
-                    className="border-orange-500 text-orange-500 hover:bg-orange-500/10 hover:text-orange-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="border-orange-500 text-orange-500 hover:bg-orange-500/10 hover:text-orange-400"
                   >
-                    <Link href={`/analyses/${analysis.id}`}>
-                      צפייה
-                    </Link>
+                    <Link href={`/analyses/${analysis.id}`}>הצג</Link>
                   </Button>
+                  
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => handleDeleteClick(analysis.id)}
                     className="border-red-500 text-red-500 hover:bg-red-500/10 hover:text-red-400"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3 w-3" />
                   </Button>
                 </TableCell>
               </TableRow>
