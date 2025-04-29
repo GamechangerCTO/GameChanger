@@ -385,12 +385,23 @@ export async function processAnalysis(analysisId: string): Promise<void> {
     console.log(`[DEBUG] לפני ביצוע שאילתת SELECT ל-call_analyses עבור ${analysisId}`);
     
     // קבלת נתוני הניתוח
-    const { data: existingAnalysis, error: checkError } = await supabase
-      .from('call_analyses')
-      .select('*, company:company_id(*)')
-      .eq('id', analysisId)
-      .single();
-      
+    let existingAnalysis = null;
+    let checkError = null;
+    console.time(`[TIMER] Supabase Select Query ${analysisId}`); // התחלת מדידת זמן
+    try {
+      const result = await supabase
+        .from('call_analyses')
+        .select('recording_url, analysis_type, company_id') // שאילתה פשוטה יותר לבדיקה
+        .eq('id', analysisId)
+        .single();
+      existingAnalysis = result.data;
+      checkError = result.error;
+    } catch (querySpecificError: any) {
+      console.error(`[ERROR] שגיאה ספציפית במהלך שאילתת SELECT ל-Supabase עבור ${analysisId}:`, querySpecificError);
+      checkError = querySpecificError; // שמירת השגיאה להמשך טיפול
+    }
+    console.timeEnd(`[TIMER] Supabase Select Query ${analysisId}`); // סיום מדידת זמן
+          
     console.log(`[DEBUG] אחרי ביצוע שאילתת SELECT ל-call_analyses עבור ${analysisId}`);
       
     if (checkError) {
@@ -458,9 +469,15 @@ export async function processAnalysis(analysisId: string): Promise<void> {
     // 3. ניתוח התמלול
     console.log(`[LOG] מתחיל ניתוח תמלול`);
     try {
+      // !!! הערה: נצטרך להחזיר את שליפת companyData המלאה אם הבדיקה הזו מצליחה !!!
+      // כרגע, existingAnalysis.company יהיה null כי לא ביקשנו את ה-JOIN.
+      // לשם הבדיקה בלבד, נעביר אובייקט ריק או נשתמש ב-company_id אם הוא קיים.
+      const companyInfoForAnalysis = existingAnalysis?.company_id ? { id: existingAnalysis.company_id } : {}; // פתרון זמני לבדיקה
+      
       const analysisResult = await analyzeTranscript(
         transcript,
-        existingAnalysis.company,
+        // existingAnalysis.company, // המקורי - לא זמין בשאילתה הפשוטה
+        companyInfoForAnalysis, // שימוש בפתרון הזמני
         existingAnalysis.analysis_type
       );
       console.log(`[LOG] ניתוח תמלול הושלם בהצלחה`);
