@@ -52,7 +52,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // קבלת רשימת ניתוחים במצב 'pending'
-    const batchSize = 5; // מגביל לחמישה ניתוחים בכל פעם
+    const batchSize = 10; // מגדיל לעשרה ניתוחים בכל פעם
     const { data: analyses, error: fetchError } = await supabase
       .from('call_analyses')
       .select('*, company:company_id(*)')

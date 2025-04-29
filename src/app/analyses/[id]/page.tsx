@@ -123,7 +123,7 @@ export default function AnalysisPage() {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
         }
-        intervalRef.current = setInterval(pollStatus, 15000);
+        intervalRef.current = setInterval(pollStatus, 30000);
     } else {
       if (intervalRef.current) {
           console.log('[Polling] מנקה אינטרוול קיים.');

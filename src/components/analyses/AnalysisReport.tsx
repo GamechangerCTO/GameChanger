@@ -279,17 +279,14 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
             </Card>
           </TabsContent>
           
-          <TabsContent value="transcript">
+          <TabsContent value="transcript" className="space-y-6">
             <Card className="overflow-hidden bg-gray-900 border border-gray-800">
               <CardHeader>
-                <CardTitle className="text-white">תמלול השיחה</CardTitle>
+                <CardTitle className="text-white">תמלול שיחה</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="bg-gray-800 p-4 rounded-md overflow-auto max-h-[500px] border border-gray-700">
-                  <div className="whitespace-pre-line text-sm text-gray-300">
-                    {analysis.transcription || 
-                     <span className="text-gray-500">אין תמלול זמין</span>}
-                  </div>
+                <div className="prose prose-sm prose-invert max-w-none rtl">
+                  <pre className="text-xs whitespace-pre-wrap break-words">{analysis.transcription || 'אין תמלול זמין'}</pre>
                 </div>
               </CardContent>
             </Card>
@@ -298,23 +295,16 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
           <TabsContent value="ai-debug" className="space-y-6">
             <Card className="overflow-hidden bg-gray-900 border border-gray-800">
               <CardHeader>
-                <CardTitle className="text-white">פרטי ניתוח AI</CardTitle>
+                <CardTitle className="text-white">נתוני AI גולמיים</CardTitle>
+                <CardDescription className="text-gray-400">
+                  מידע גולמי מה-AI לצורכי דיבוג
+                </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none rtl text-gray-300 prose-headings:text-white prose-strong:text-white">
-                  <h3 className="text-white">מודל: GPT-4-turbo</h3>
-                  <p>המערכת משתמשת ב-OpenAI לניתוח תמלול השיחה שנוצר באמצעות מודל Whisper.</p>
-                  <div className="bg-gray-800 p-3 rounded-md my-3">
-                    <strong className="text-orange-500">סוג ניתוח:</strong> {analysis.analysis_type}
-                  </div>
-                  <h3 className="text-white mt-6">תמלול (Whisper)</h3>
-                  <div className="bg-gray-800 p-3 rounded-md my-3 max-h-40 overflow-y-auto">
-                    <pre className="text-gray-300 whitespace-pre-wrap">{analysis.transcription || 'אין תמלול זמין'}</pre>
-                  </div>
-                  <h3 className="text-white mt-6">תוצאת תשובת AI (JSON)</h3>
-                  <div className="bg-gray-800 p-3 rounded-md my-3 max-h-80 overflow-y-auto">
-                    <pre className="text-gray-300 whitespace-pre-wrap">{JSON.stringify(analysis.report_data, null, 2) || 'אין נתונים זמינים'}</pre>
-                  </div>
+                <div className="prose prose-sm prose-invert max-w-none">
+                  <pre className="text-xs whitespace-pre-wrap break-words">
+                    {JSON.stringify(analysis.report_data, null, 2)}
+                  </pre>
                 </div>
               </CardContent>
             </Card>

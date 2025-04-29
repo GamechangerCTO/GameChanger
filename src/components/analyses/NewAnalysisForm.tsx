@@ -198,7 +198,7 @@ export function NewAnalysisForm() {
         const testResponse = await fetch(recordingUrl, {
           method: 'HEAD', // רק בדיקת תקינות ללא הורדת תוכן
           // נוסיף timeout למקרה שהשרת לא מגיב
-          signal: AbortSignal.timeout(3000) // 3 שניות timeout
+          signal: AbortSignal.timeout(15000) // 15 שניות timeout
         });
         
         if (!testResponse.ok) {
