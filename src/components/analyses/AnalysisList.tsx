@@ -196,61 +196,37 @@ export function AnalysisList() {
     
     setProcessingAnalysisIds(prev => new Set([...prev, analysisId]));
     try {
-      // בדיקת הסטטוס הנוכחי של הניתוח
       const currentAnalysis = analyses.find(a => a.id === analysisId);
-      if (!currentAnalysis) {
-        throw new Error('ניתוח לא נמצא ברשימה המקומית');
-      }
+      const currentStatus = currentAnalysis?.status || 'unknown';
+      console.log(`[AnalysisList] שולח בקשה לניתוח/ניתוח מחדש: ${analysisId}, סטטוס נוכחי: ${currentStatus}`);
       
-      console.log('שולח בקשה להתחלת ניתוח:', analysisId, 'סטטוס נוכחי:', currentAnalysis.status);
-      
-      let response;
-      
-      // אם הניתוח כבר הושלם או נכשל, נשתמש בפונקציית Edge לניתוח מחדש
-      if (['done', 'completed', 'error', 'failed'].includes(currentAnalysis.status)) {
-        console.log('קורא לפונקציית Edge לניתוח מחדש');
-        
-        try {
-          // שימוש במופע supabase המייובא כדי לקרוא לפונקציית Edge
-          const { supabase } = await import('@/lib/supabase');
-          
-          const { data, error } = await supabase.functions.invoke('reanalyze-call', {
-            body: { analysisId }
-          });
-          
-          if (error) throw new Error(error.message);
-          response = { 
-            ok: true, 
-            json: () => Promise.resolve(data)
-          } as Response;
-        } catch (edgeError: any) {
-          console.error('שגיאה בקריאה לפונקציית Edge:', edgeError);
-          throw new Error(`שגיאה בקריאה לפונקציית Edge: ${edgeError.message}`);
-        }
-      } else {
-        // אם הניתוח בסטטוס pending, נשתמש בדרך המקורית
-        console.log('קורא ל-API המקומי לניתוח');
-        response = await fetch('/api/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            analysisId: analysisId,
-          }),
-        });
-      }
+      // עכשיו תמיד קוראים לאותו API Route
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          analysisId: analysisId,
+        }),
+      });
       
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error('שגיאה בהתחלת הניתוח: ' + (errorData.error || response.statusText));
+        let errorMsg = 'שגיאה בהתחלת הניתוח';
+        try {
+          const errorData = await response.json();
+          errorMsg += ': ' + (errorData.error || response.statusText);
+        } catch (jsonError) {
+          errorMsg += ': ' + response.statusText;
+        }
+        throw new Error(errorMsg);
       }
       
       // תגובה התקבלה בהצלחה
       const responseData = await response.json();
-      console.log('התהליך החל בהצלחה:', responseData);
+      console.log(`[AnalysisList] ה-API החזיר תשובה שהתהליך התחיל:`, responseData);
       
-      // עדכון הרשימה המקומית
+      // עדכון הרשימה המקומית (מעדכנים ל-processing בכל מקרה)
       setAnalyses(prevAnalyses => 
         prevAnalyses.map(analysis => 
           analysis.id === analysisId 
@@ -260,9 +236,9 @@ export function AnalysisList() {
       );
       
       // נודיע למשתמש
-      toast.success('התמלול והניתוח החלו, התהליך עשוי להימשך מספר דקות');
+      toast.success('הניתוח החל, התהליך עשוי להימשך מספר דקות. הדף יתעדכן אוטומטית.');
     } catch (error: any) {
-      console.error('שגיאה בהפעלת הניתוח:', error);
+      console.error('[AnalysisList] שגיאה בהפעלת הניתוח:', error);
       toast.error(error.message || 'שגיאה בהפעלת ניתוח');
     } finally {
       setProcessingAnalysisIds(prev => {

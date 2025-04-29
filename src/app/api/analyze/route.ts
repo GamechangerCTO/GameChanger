@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { processAnalysis } from '@/lib/api'; // נייבא את פונקציית העיבוד המרכזית
 
-// הגדרת זמן מקסימלי להמתנה לתשובה
-export const runtime = 'edge';
-export const maxDuration = 60;
+// הגדרת זמן מקסימלי להמתנה לתשובה - Serverless Node.js
+export const runtime = 'nodejs';
+export const maxDuration = 300; // 5 דקות
 
 export async function POST(request: NextRequest) {
-  console.log('[API:ANALYZE] ✉️ התקבלה בקשה לניתוח שיחה');
+  console.log('[API:ANALYZE] ✉️ התקבלה בקשה לניתוח שיחה (Node.js Serverless)');
   try {
     let requestData;
     try {
@@ -30,111 +31,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // בדיקה שהניתוח קיים במסד הנתונים ועדכון סטטוס
-    try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      
-      if (!supabaseUrl || !serviceRoleKey) {
-        throw new Error('חסרות הגדרות Supabase');
-      }
-      
-      const supabase = createClient(supabaseUrl, serviceRoleKey);
-      
-      // קביעת משתמש "מערכת" (אדמין) כברירת מחדל
-      const userId = "00000000-0000-0000-0000-000000000000"; // משתמש מערכת זמני
-      console.log(`[API:ANALYZE] 👤 משתמש במזהה משתמש זמני: ${userId}`);
-      
-      // בדיקה אם הניתוח קיים במסד הנתונים
-      const { data: analysis, error } = await supabase
-        .from('call_analyses')
-        .select('id, status, user_id, company_id')
-        .eq('id', analysisId)
-        .single();
-
-      if (error || !analysis) {
-        console.error(`[API:ANALYZE] ❌ ניתוח ${analysisId} לא נמצא במסד הנתונים:`, error?.message || 'לא נמצאו נתונים');
-        return NextResponse.json(
-          { error: 'ניתוח לא נמצא', details: error?.message },
-          { status: 404 }
-        );
-      }
-
-      console.log(`[API:ANALYZE] ✓ הניתוח ${analysisId} נמצא במסד הנתונים. סטטוס: ${analysis.status}`);
-      
-      // עדכון הסטטוס ל-processing אם הוא pending
-      if (analysis.status === 'pending') {
-        console.log(`[API:ANALYZE] 🔄 מעדכן סטטוס ניתוח ${analysisId} ל-processing`);
-        const { error: updateError } = await supabase
-          .from('call_analyses')
-          .update({ status: 'processing' })
-          .eq('status', 'pending')
-          .eq('id', analysisId);
-          
-        if (updateError) {
-          console.warn(`[API:ANALYZE] ⚠️ שגיאה בעדכון סטטוס ניתוח ${analysisId}:`, updateError);
-        }
-      }
-    } catch (checkError: any) {
-      console.error('[API:ANALYZE] ❌ שגיאה בבדיקת קיום הניתוח:', checkError);
-      // ממשיכים למרות השגיאה, ננסה להפעיל את התהליך בכל זאת
-    }
-
-    // קריאה לפונקציית edge ישירות במקום לעבור דרך webhook
-    console.log(`[API:ANALYZE] 🔄 קורא לפונקציית Edge לעיבוד ניתוח ${analysisId}`);
+    // כאן פשוט נפעיל את תהליך הניתוח הארוך ברקע
+    // הפונקציה processAnalysis כבר כוללת בדיקות ובקרה על הסטטוסים
+    console.log(`[API:ANALYZE] 🚀 מפעיל את processAnalysis עבור ניתוח ${analysisId}`);
     
-    try {
-      // בניית כתובת ה-Edge Function
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      console.log(`[API:ANALYZE] 🔗 כתובת Supabase: ${supabaseUrl}`);
-      
-      if (!supabaseUrl || !supabaseAnonKey) {
-        throw new Error('חסרים פרטי התחברות ל-Supabase');
-      }
-      
-      // שליחת בקשה ישירה לפונקציית Edge
-      const edgeFunctionUrl = `${supabaseUrl}/functions/v1/reanalyze-call`;
-      console.log(`[API:ANALYZE] 📤 שולח קריאה לפונקציית Edge בכתובת: ${edgeFunctionUrl}`);
-      
-      // יצירת מערך של ניסיונות שליחה
-      const sendEdgeRequest = async () => {
-        const response = await fetch(edgeFunctionUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabaseAnonKey}`
-          },
-          body: JSON.stringify({
-            analysisId
-          }),
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Edge function responded with status: ${response.status}`);
-        }
-        
-        return await response.json();
-      };
-      
-      // ננסה לשלוח את הבקשה, אך לא נחכה לתשובה (fire and forget)
-      sendEdgeRequest()
-        .then(result => {
-          console.log('[API:ANALYZE] ✓ פונקציית Edge החזירה תשובה:', result);
-        })
-        .catch(error => {
-          console.error(`[API:ANALYZE] ❌ שגיאה בשליחת בקשה לפונקציית Edge: ${error.message}`);
-        });
-      
-      console.log('[API:ANALYZE] ✓ הבקשה לפונקציית Edge נשלחה בהצלחה');
-    } catch (edgeError) {
-      console.error('[API:ANALYZE] ❌ שגיאה בשליחת בקשה לפונקציית Edge:', edgeError);
-      // ממשיכים למרות הכל
-    }
-
-    // מחזירים תשובה מיידית כי העיבוד יימשך ברקע
-    console.log(`[API:ANALYZE] ✓ בקשת הניתוח ${analysisId} התקבלה והתהליך התחיל בהצלחה`);
+    // הפעלת הפונקציה באופן אסינכרוני (לא מחכים לסיום)
+    processAnalysis(analysisId).catch(error => {
+      // חשוב לתפוס שגיאות מהפונקציה האסינכרונית
+      console.error(`[API:ANALYZE] ❌ שגיאה חמורה בתהליך processAnalysis עבור ${analysisId}:`, error);
+      // כאן אפשר להוסיף לוגיקה נוספת אם רוצים לעדכן את הסטטוס ל-error במקרה כזה
+    });
+    
+    // מחזירים תשובה מיידית ללקוח שהתהליך התחיל
+    console.log(`[API:ANALYZE] ✓ הבקשה לניתוח ${analysisId} התקבלה והתהליך התחיל ברקע`);
     return NextResponse.json({ 
       success: true, 
       message: 'התהליך התחיל בהצלחה',
@@ -149,4 +58,6 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
+
+// הסרת הקוד הישן שבדק סטטוס וקרא לפונקציית Edge 
