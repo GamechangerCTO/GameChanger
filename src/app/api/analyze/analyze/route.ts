@@ -48,12 +48,22 @@ export async function POST(request: NextRequest) {
     }
 
     // שמירת תוצאת הניתוח וסיום
+    let reportDataToSave = analysisResult;
+    try {
+      // ננסה להמיר ל-JSON אם זו מחרוזת JSON
+      if (typeof analysisResult === 'string') {
+        reportDataToSave = JSON.parse(analysisResult);
+      }
+    } catch (e) {
+      // אם לא הצליח להמיר, נשמור כמחרוזת
+      reportDataToSave = analysisResult;
+    }
     await supabase
       .from('call_analyses')
-      .update({ report_data: analysisResult, status: 'done', updated_at: new Date().toISOString() })
+      .update({ report_data: reportDataToSave, status: 'done', updated_at: new Date().toISOString() })
       .eq('id', analysisId);
 
-    return NextResponse.json({ success: true, message: 'הניתוח הסתיים', analysisId });
+    return NextResponse.json({ success: true, message: 'הניתוח הסתיים', analysisId, result: reportDataToSave });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'שגיאה לא ידועה' }, { status: 500 });
   }

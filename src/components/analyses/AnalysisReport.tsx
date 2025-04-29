@@ -245,6 +245,15 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
     }
 
     if (analysis.status === 'done') {
+      // בדיקה אם יש בכלל תוצאות ניתוח
+      if (!analysis.report_data || Object.keys(analysis.report_data).length === 0) {
+        return (
+          <Alert variant="destructive" className="bg-yellow-900/30 border-yellow-700 text-yellow-300">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>לא נמצאו תוצאות ניתוח להצגה. ייתכן שהתרחשה שגיאה בעיבוד או שהפורמט לא תקין.</AlertDescription>
+          </Alert>
+        );
+      }
       return (
         <Tabs defaultValue="summary" className="mt-6">
           <TabsList className="grid grid-cols-4 w-full max-w-md bg-gray-800 border border-gray-700 mb-6">
@@ -262,11 +271,15 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center justify-center">
-                    <div className="text-6xl font-bold text-center text-orange-500">
-                      {analysis.report_data?.summary?.totalScore 
-                        ? Math.round((analysis.report_data.summary.totalScore / (7 * (analysis.report_data?.analysis?.length || 28))) * 100) 
-                        : 0}
-                      <span className="text-2xl text-gray-400">/100</span>
+                    <div className="relative flex items-center justify-center">
+                      <div className="w-32 h-32 rounded-full bg-gradient-to-tr from-orange-500 to-yellow-400 flex items-center justify-center shadow-lg">
+                        <span className="text-6xl font-bold text-white drop-shadow-lg">
+                          {analysis.report_data?.summary?.totalScore 
+                            ? Math.round((analysis.report_data.summary.totalScore / (7 * (analysis.report_data?.analysis?.length || 28))) * 100) 
+                            : 0}
+                        </span>
+                      </div>
+                      <span className="absolute bottom-4 right-4 text-2xl text-gray-200">/100</span>
                     </div>
                   </div>
                 </CardContent>
@@ -280,7 +293,10 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
                   <ul className="list-disc list-inside space-y-1 text-gray-300">
                     {analysis.report_data?.analysis && analysis.report_data.analysis.length > 0 ? (
                       analysis.report_data.analysis.map((item: {parameter: string, text: string, score: number}, index: number) => (
-                        <li key={index}>{item.parameter}</li>
+                        <li key={index}>
+                          {/* Tooltip לפרמטר */}
+                          <span title={item.text}>{item.parameter}</span>
+                        </li>
                       ))
                     ) : (
                       <li className="text-gray-500">לא זוהו פרמטרים</li>
