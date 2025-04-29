@@ -434,6 +434,7 @@ export async function processAnalysis(analysisId: string): Promise<void> {
 
     // 2. תמלול ההקלטה
     console.log(`[LOG] מתחיל תמלול הקלטה`);
+    console.log(`[DEBUG] לפני הקריאה לפונקציה transcribeAudio עם URL: ${audioUrl?.substring(0, 50)}...`);
     let transcript;
     try {
       transcript = await transcribeAudio(audioUrl);
