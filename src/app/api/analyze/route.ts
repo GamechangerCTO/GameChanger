@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { processAnalysis } from '@/lib/api';
 import { createClient } from '@supabase/supabase-js';
 
 // הגדרת זמן מקסימלי להמתנה לתשובה
@@ -81,22 +80,32 @@ export async function POST(request: NextRequest) {
       // ממשיכים למרות השגיאה, ננסה להפעיל את התהליך בכל זאת
     }
 
-    // הפעלת תהליך העיבוד באופן אסינכרוני והחזרת תשובה מיידית
-    console.log(`[API:ANALYZE] התחלת תהליך עיבוד אסינכרוני לניתוח ${analysisId}`);
+    // קריאה לwebhook לעיבוד ארוך טווח במקום לנסות לבצע את התהליך כאן
+    console.log(`[API:ANALYZE] קורא ל-webhook לעיבוד ניתוח ${analysisId}`);
+    
+    const webhookSecretKey = process.env.WEBHOOK_SECRET_KEY || 'default_webhook_key';
     
     try {
-      // הערה: ב-Vercel, אנחנו מציגים הודעה מיידית כי התהליך עשוי להתבצע במקביל
-      // יש לוודא שהמערכת מפעילה את התהליך בהצלחה גם כשהבקשה מסתיימת ב-timeout
-      console.log('[API:ANALYZE] לפני קריאה לפונקציית processAnalysis');
+      // שליחת בקשה לwebhook הייעודי לעיבוד ארוך
+      const webhookUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://game-changer-alpha.vercel.app';
       
-      // הפעלת התהליך ברקע ללא המתנה (fire and forget)
-      processAnalysis(analysisId).catch((error) => {
-        console.error(`[API:ANALYZE] שגיאה בעיבוד ניתוח ${analysisId}:`, error);
+      fetch(`${webhookUrl}/api/webhook/process-analysis`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          analysisId,
+          secretKey: webhookSecretKey
+        }),
+      }).catch(error => {
+        console.error(`[API:ANALYZE] שגיאה בשליחת בקשה לwebhook: ${error.message}`);
       });
       
-      console.log('[API:ANALYZE] אחרי קריאה לפונקציית processAnalysis - הקריאה נשלחה בהצלחה');
-    } catch (processError) {
-      console.error('[API:ANALYZE] שגיאה בקריאה לפונקציית processAnalysis:', processError);
+      console.log('[API:ANALYZE] הבקשה ל-webhook נשלחה בהצלחה');
+    } catch (webhookError) {
+      console.error('[API:ANALYZE] שגיאה בשליחת בקשה לwebhook:', webhookError);
+      // ממשיכים למרות הכל, כי הסטטוס כבר עודכן
     }
 
     // מחזירים תשובה מיידית כי העיבוד יימשך ברקע

@@ -103,17 +103,27 @@ export default function AnalysisPage() {
       console.log(`[Polling] בדיקת סטטוס ניתוח, מצב נוכחי: ${analysis?.status}`);
       if (analysis && (analysis.status === 'pending' || analysis.status === 'processing')) {
         console.log('[Polling] הניתוח עדיין בתהליך, טוען נתונים מחדש...');
-        const updatedAnalysis = await fetchAnalysisData();
-        if (updatedAnalysis && (updatedAnalysis.status === 'done' || updatedAnalysis.status === 'error')) {
-          console.log('[Polling] הניתוח הסתיים או נכשל, מפסיק את הבדיקות התקופתיות.');
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
+        try {
+          const updatedAnalysis = await fetchAnalysisData();
+          console.log(`[Polling] התקבלו נתונים חדשים, מצב עדכני: ${updatedAnalysis?.status}`);
+          
+          if (updatedAnalysis && (updatedAnalysis.status === 'done' || updatedAnalysis.status === 'error')) {
+            console.log('[Polling] הניתוח הסתיים או נכשל, מפסיק את הבדיקות התקופתיות.');
+            if (intervalRef.current) {
+              clearInterval(intervalRef.current);
+              intervalRef.current = null;
+            }
+            // רענון העמוד כדי להציג את התוצאות העדכניות
+            window.location.reload();
           }
+        } catch (error) {
+          console.error('[Polling] שגיאה בבדיקת סטטוס:', error);
         }
       } else {
         console.log('[Polling] הניתוח לא במצב עיבוד או אין נתונים, מפסיק בדיקות.');
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
+          intervalRef.current = null;
         }
       }
     };
@@ -122,12 +132,18 @@ export default function AnalysisPage() {
         console.log('[Polling] מתחיל בדיקות תקופתיות...');
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
+          intervalRef.current = null;
         }
-        intervalRef.current = setInterval(pollStatus, 30000);
+        // שימוש בפולינג תכוף יותר (כל 15 שניות) כדי לתת משוב מהיר יותר
+        intervalRef.current = setInterval(pollStatus, 15000);
+        
+        // הפעלה ראשונית של הפולינג
+        pollStatus();
     } else {
       if (intervalRef.current) {
           console.log('[Polling] מנקה אינטרוול קיים.');
           clearInterval(intervalRef.current);
+          intervalRef.current = null;
       }
     }
 
@@ -135,6 +151,7 @@ export default function AnalysisPage() {
       if (intervalRef.current) {
         console.log('[Cleanup] מנקה אינטרוול.');
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
       }
     };
   }, [isLoading, analysis]);
