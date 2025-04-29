@@ -90,7 +90,8 @@ export async function getFileSignedUrl(bucketName: string, filePath: string): Pr
 
 // פונקציה לתמלול קובץ שמע באמצעות whisper
 export async function transcribeAudio(audioUrl: string): Promise<string> {
-  console.log(`[TRANSCRIBE] מתחיל תמלול קובץ מ-URL: ${audioUrl}`);
+  console.log(`[TRANSCRIBE] מתחיל תמלול קובץ מ-URL: ${audioUrl.substring(0, 50)}...`);
+  console.log(`[TRANSCRIBE-DEBUG] סוג ה-URL:`, typeof audioUrl);
   try {
     // וידוא שה-URL תקין
     if (!audioUrl || !audioUrl.startsWith('http')) {
@@ -315,12 +316,19 @@ export async function updateAnalysisStatus(
 
 // פונקציה לעיבוד ניתוח חדש
 export async function processAnalysis(analysisId: string): Promise<void> {
-  console.log(`[START] מתחיל עיבוד ניתוח ${analysisId}`);
+  console.log(`[START] מתחיל עיבוד ניתוח ${analysisId} - גרסה משופרת ללא מגבלות זמן`);
   let supabase = null;
+  
+  // בדיקת משתני סביבה קריטיים
+  console.log('[ENV-CHECK] בדיקת משתני סביבה:');
+  console.log('[ENV-CHECK] NEXT_PUBLIC_SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'קיים' : 'חסר!');
+  console.log('[ENV-CHECK] SUPABASE_SERVICE_ROLE_KEY:', process.env.SUPABASE_SERVICE_ROLE_KEY ? 'קיים' : 'חסר!');
+  console.log('[ENV-CHECK] OPENAI_API_KEY:', process.env.OPENAI_API_KEY ? 'קיים' : 'חסר!');
   
   try {
     // יצירת חיבור supabase בתוך try-catch
     try {
+      console.log('[DEBUG] לפני יצירת חיבור ל-Supabase Admin');
       supabase = getSupabaseAdmin();
       console.log('[DEBUG] חיבור ל-Supabase נוצר בהצלחה');
     } catch (supabaseError: any) {

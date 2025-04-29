@@ -1,6 +1,6 @@
 /**
  * API למעבר בין שלבי עיבוד הניתוח
- * מאפשר לעקוף את מגבלת ה-10 שניות של הורסל על ידי פיצול התהליך לשלבים
+ * מאפשר לעקוף מגבלות חוזקות על ידי ביצוע העיבוד בצד השרת
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -60,10 +60,18 @@ export async function POST(req: NextRequest) {
   
   // שליחת תשובה מהירה וריצה במקביל של התהליך בלי לחכות לסיום
   try {
-    // הפעלת התהליך בלי לחכות - לא חלק מה-Promise שחוזר למשתמש
-    processAnalysis(analysisId).catch(error => {
-      console.error(`[API] שגיאה בעיבוד ניתוח ${analysisId}:`, error);
-    });
+    console.log(`[API:PROCESS-ANALYSIS] מתחיל תהליך עיבוד ניתוח ${analysisId}`);
+    
+    try {
+      console.log('[API:PROCESS-ANALYSIS] לפני קריאה לפונקציית processAnalysis');
+      // הפעלת התהליך בלי לחכות - לא חלק מה-Promise שחוזר למשתמש
+      processAnalysis(analysisId).catch(error => {
+        console.error(`[API:PROCESS-ANALYSIS] שגיאה בעיבוד ניתוח ${analysisId}:`, error);
+      });
+      console.log('[API:PROCESS-ANALYSIS] אחרי קריאה לפונקציית processAnalysis - הקריאה נשלחה בהצלחה');
+    } catch (processError) {
+      console.error('[API:PROCESS-ANALYSIS] שגיאה בקריאה לפונקציית processAnalysis:', processError);
+    }
     
     // החזרת תשובה מיידית ללקוח
     return NextResponse.json({

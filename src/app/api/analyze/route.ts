@@ -80,9 +80,16 @@ export async function POST(request: NextRequest) {
 
     // נפעיל את תהליך העיבוד באופן אסינכרוני (לא מחכים לסיום)
     console.log(`[API:ANALYZE] מתחיל תהליך עיבוד אסינכרוני לניתוח ${analysisId}`);
-    processAnalysis(analysisId).catch((error) => {
-      console.error(`[API:ANALYZE] שגיאה בעיבוד ניתוח ${analysisId}:`, error);
-    });
+    
+    try {
+      console.log('[API:ANALYZE] לפני קריאה לפונקציית processAnalysis');
+      processAnalysis(analysisId).catch((error) => {
+        console.error(`[API:ANALYZE] שגיאה בעיבוד ניתוח ${analysisId}:`, error);
+      });
+      console.log('[API:ANALYZE] אחרי קריאה לפונקציית processAnalysis - הקריאה נשלחה בהצלחה');
+    } catch (processError) {
+      console.error('[API:ANALYZE] שגיאה בקריאה לפונקציית processAnalysis:', processError);
+    }
 
     // מחזירים תשובה מיידית כי העיבוד יימשך ברקע
     console.log(`[API:ANALYZE] בקשת הניתוח ${analysisId} התקבלה והתהליך התחיל בהצלחה`);

@@ -30,6 +30,7 @@ Deno.serve(async (req: Request) => {
   }
 
   console.log('[BATCH-PROCESSOR] התחלת פונקציית עיבוד ניתוחים מרובים');
+  console.log('[BATCH-PROCESSOR] קיבלתי בקשה:', req.method, req.url);
   
   try {
     // אתחול לקוח Supabase

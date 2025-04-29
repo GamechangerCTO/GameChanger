@@ -30,7 +30,6 @@ import { Progress } from '@/components/ui/progress';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { Upload } from 'lucide-react'; // Import upload icon
-import { processAnalysis } from '@/lib/api';
 
 const formSchema = z.object({
   analysis_type: z.enum(['sales', 'sales_followup', 'appointment_setting', 'appointment_followup', 'service'], {
@@ -236,6 +235,7 @@ export function NewAnalysisForm() {
       // לא נמתין כאן, כי העיבוד יכול לקחת זמן רב
       // נריץ את זה במקביל כדי לא לתקוע את הממשק
       try {
+        console.log('שולח בקשה להתחלת ניתוח עם ID:', analysisData.id);
         const response = await fetch('/api/analyze', {
           method: 'POST',
           headers: {
@@ -246,8 +246,11 @@ export function NewAnalysisForm() {
           }),
         });
         
+        console.log('התקבלה תשובה מהשרת:', response.status, response.statusText);
+        
         if (!response.ok) {
           const errorData = await response.json();
+          console.error('שגיאה בתגובת השרת:', errorData);
           throw new Error('שגיאה בהתחלת הניתוח: ' + (errorData.error || response.statusText));
         }
         
