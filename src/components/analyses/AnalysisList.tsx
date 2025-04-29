@@ -201,7 +201,7 @@ export function AnalysisList() {
       console.log(`[AnalysisList] שולח בקשה לניתוח/ניתוח מחדש: ${analysisId}, סטטוס נוכחי: ${currentStatus}`);
       
       // עכשיו תמיד קוראים לאותו API Route
-      const response = await fetch('/api/analyze', {
+      const response = await fetch('/api/analyze/init', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

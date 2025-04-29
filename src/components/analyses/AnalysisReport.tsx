@@ -459,7 +459,7 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
       const timeoutId = setTimeout(() => controller.abort(), 30000); // timeout של 30 שניות
       
       try {
-        const response = await fetch('/api/analyze', {
+        const response = await fetch('/api/analyze/init', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
