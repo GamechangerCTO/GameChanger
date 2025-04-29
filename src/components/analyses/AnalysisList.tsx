@@ -30,13 +30,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Trash2, Send } from 'lucide-react';
 
-type AnalysisStatus = 'pending' | 'processing' | 'done' | 'error';
+type AnalysisStatus = 'pending' | 'processing' | 'done' | 'error' | 'failed' | 'completed';
 
 const statusLabels: Record<AnalysisStatus, string> = {
   pending: 'ממתין',
   processing: 'מעבד',
   done: 'הושלם',
   error: 'שגיאה',
+  failed: 'נכשל',
+  completed: 'הושלם',
 };
 
 const statusColors: Record<AnalysisStatus, string> = {
@@ -44,6 +46,8 @@ const statusColors: Record<AnalysisStatus, string> = {
   processing: 'bg-blue-500 text-blue-900 border-blue-600',
   done: 'bg-green-500 text-green-900 border-green-600',
   error: 'bg-red-500 text-red-900 border-red-600',
+  failed: 'bg-red-500 text-red-900 border-red-600',
+  completed: 'bg-green-500 text-green-900 border-green-600',
 };
 
 const analysisTypeLabels: Record<string, string> = {
@@ -192,16 +196,50 @@ export function AnalysisList() {
     
     setProcessingAnalysisIds(prev => new Set([...prev, analysisId]));
     try {
-      console.log('שולח בקשה להתחלת ניתוח:', analysisId);
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          analysisId: analysisId,
-        }),
-      });
+      // בדיקת הסטטוס הנוכחי של הניתוח
+      const currentAnalysis = analyses.find(a => a.id === analysisId);
+      if (!currentAnalysis) {
+        throw new Error('ניתוח לא נמצא ברשימה המקומית');
+      }
+      
+      console.log('שולח בקשה להתחלת ניתוח:', analysisId, 'סטטוס נוכחי:', currentAnalysis.status);
+      
+      let response;
+      
+      // אם הניתוח כבר הושלם או נכשל, נשתמש בפונקציית Edge לניתוח מחדש
+      if (['done', 'completed', 'error', 'failed'].includes(currentAnalysis.status)) {
+        console.log('קורא לפונקציית Edge לניתוח מחדש');
+        
+        try {
+          // שימוש במופע supabase המייובא כדי לקרוא לפונקציית Edge
+          const { supabase } = await import('@/lib/supabase');
+          
+          const { data, error } = await supabase.functions.invoke('reanalyze-call', {
+            body: { analysisId }
+          });
+          
+          if (error) throw new Error(error.message);
+          response = { 
+            ok: true, 
+            json: () => Promise.resolve(data)
+          } as Response;
+        } catch (edgeError: any) {
+          console.error('שגיאה בקריאה לפונקציית Edge:', edgeError);
+          throw new Error(`שגיאה בקריאה לפונקציית Edge: ${edgeError.message}`);
+        }
+      } else {
+        // אם הניתוח בסטטוס pending, נשתמש בדרך המקורית
+        console.log('קורא ל-API המקומי לניתוח');
+        response = await fetch('/api/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            analysisId: analysisId,
+          }),
+        });
+      }
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -344,6 +382,31 @@ export function AnalysisList() {
                         <span className="flex items-center gap-2">
                           <Send className="h-3 w-3" />
                           שלח לניתוח
+                        </span>
+                      )}
+                    </Button>
+                  ) : (analysis.status === 'done' || analysis.status === 'error' || analysis.status === 'failed') ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => startAnalysis(analysis.id)}
+                      disabled={processingAnalysisIds.has(analysis.id)}
+                      className="border-orange-500 text-orange-500 hover:bg-orange-500/10 hover:text-orange-400"
+                    >
+                      {processingAnalysisIds.has(analysis.id) ? (
+                        <span className="flex items-center gap-2">
+                          <div className="w-3 h-3 border-t-2 border-r-2 border-orange-500 rounded-full animate-spin"></div>
+                          מעבד...
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-2">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+                            <path d="M21 3v5h-5"></path>
+                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+                            <path d="M8 16H3v5"></path>
+                          </svg>
+                          נתח מחדש
                         </span>
                       )}
                     </Button>

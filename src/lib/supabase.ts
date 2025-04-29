@@ -28,7 +28,7 @@ export type CallAnalysis = {
   company_id: string;
   analysis_type: 'sales' | 'sales_followup' | 'appointment_setting' | 'appointment_followup' | 'service';
   recording_url: string;
-  status: 'pending' | 'processing' | 'done' | 'error';
+  status: 'pending' | 'processing' | 'done' | 'error' | 'failed' | 'completed';
   report_data: {
     analysis?: Array<{parameter: string, text: string, score: number}>;
     summary?: {
