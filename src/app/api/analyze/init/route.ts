@@ -18,7 +18,11 @@ export async function POST(request: NextRequest) {
       .eq('id', analysisId);
 
     // קריאה לפונקציית התמלול (POST פנימי)
-    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/analyze/transcribe`, {
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL;
+    if (!baseUrl) {
+      throw new Error('חסר משתנה סביבה NEXT_PUBLIC_SITE_URL. יש להגדיר אותו לכתובת הבסיס של האתר (כולל https://)');
+    }
+    await fetch(`${baseUrl}/api/analyze/transcribe`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ analysisId }),
