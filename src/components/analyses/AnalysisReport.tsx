@@ -31,6 +31,8 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // בדיקת הרשאות בטעינה
   useEffect(() => {
@@ -349,24 +351,78 @@ export function AnalysisReport({ analysis }: AnalysisReportProps) {
                 <CardTitle className="text-white">ניתוח מפורט</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="prose prose-sm max-w-none rtl text-gray-300 prose-headings:text-white prose-strong:text-white">
-                  {Array.isArray(analysis.report_data?.analysis) ? (
-                    <div className="space-y-4">
-                      {analysis.report_data.analysis.map((item, index) => (
-                        <div key={index} className="border-b border-gray-700 pb-4 last:border-b-0 last:pb-0">
-                          <h3 className="text-orange-500 font-medium mb-2">{item.parameter}</h3>
-                          <p>{item.text}</p>
-                          <div className="mt-2 flex items-center">
-                            <span className="text-sm text-gray-400 mr-2">ציון:</span>
-                            <span className="font-bold">{item.score}/100</span>
+                {(() => {
+                  // אחזור עצם הניתוח וביצוע בדיקות סוג
+                  const analysisData = analysis.report_data?.analysis;
+                  const isValidArray = Array.isArray(analysisData) && analysisData.length > 0;
+                  
+                  if (!isValidArray) {
+                    return <span className="text-gray-500">אין ניתוח מפורט זמין</span>;
+                  }
+                  
+                  // כעת analysisData הוא מערך תקין ולא יכול להיות undefined
+                  const displayItems = analysisData.slice(
+                    (currentPage - 1) * itemsPerPage, 
+                    currentPage * itemsPerPage
+                  );
+                  
+                  return (
+                    <div className="prose prose-sm max-w-none rtl text-gray-300 prose-headings:text-white prose-strong:text-white">
+                      <div className="space-y-4">
+                        {displayItems.map((item, index) => (
+                          <div key={index} className="border-b border-gray-700 pb-4 last:border-b-0 last:pb-0">
+                            <h3 className="text-orange-500 font-medium mb-2">{item.parameter}</h3>
+                            <p>{item.text}</p>
+                            <div className="mt-2 flex items-center">
+                              <span className="text-sm text-gray-400 mr-2">ציון:</span>
+                              <span className="font-bold">{item.score}/7</span>
+                              <div className="mr-2 h-2.5 w-full max-w-[120px] rounded-full bg-gray-700 overflow-hidden">
+                                <div 
+                                  className="h-full rounded-full bg-orange-500" 
+                                  style={{ width: `${(item.score / 7) * 100}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* פקדי דפדוף */}
+                      {analysisData.length > itemsPerPage && (
+                        <div className="flex justify-between items-center mt-6 text-sm">
+                          <div className="flex items-center gap-1 text-gray-400">
+                            מציג {(currentPage - 1) * itemsPerPage + 1}-
+                            {Math.min(currentPage * itemsPerPage, analysisData.length)} 
+                            מתוך {analysisData.length} פרמטרים
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
+                              disabled={currentPage === 1}
+                              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                            >
+                              הקודם
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const maxPage = Math.ceil(analysisData.length / itemsPerPage);
+                                setCurrentPage(p => Math.min(p + 1, maxPage));
+                              }}
+                              disabled={currentPage >= Math.ceil(analysisData.length / itemsPerPage)}
+                              className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                            >
+                              הבא
+                            </Button>
                           </div>
                         </div>
-                      ))}
+                      )}
                     </div>
-                  ) : (
-                    <span className="text-gray-500">אין ניתוח מפורט זמין</span>
-                  )}
-                </div>
+                  );
+                })()}
               </CardContent>
             </Card>
             
