@@ -4,6 +4,8 @@ import { RequireAuth } from '@/components/auth/RequireAuth';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+export const dynamic = 'force-dynamic';
+
 export default function DigitalAssetsPage() {
   return (
     <RequireAuth>

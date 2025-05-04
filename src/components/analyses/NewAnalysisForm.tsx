@@ -44,9 +44,9 @@ const formSchema = z.object({
   target_audience: z.string().min(1, 'נא לבחור קהל יעד'),
   objections: z.string().optional(),
   service_issues: z.string().optional(),
-  has_previous_insights: z.enum(['yes', 'no']).default('no'),
+  has_previous_insights: z.enum(['yes', 'no']),
   previous_insights: z.string().optional(),
-  has_new_challenges: z.enum(['yes', 'no']).default('no'),
+  has_new_challenges: z.enum(['yes', 'no']),
   new_challenges: z.string().optional(),
   // Allow file to be null initially
   file: z.instanceof(File, { message: 'נא להעלות קובץ שמע (mp3, wav, mpeg)' }).nullable(),
