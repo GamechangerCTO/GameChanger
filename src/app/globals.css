@@ -145,7 +145,8 @@
   --gamechanger-orange-foreground: var(--gc-white);
 }
 
-@import "tailwindcss/preflight";
+@tailwind base;
+@tailwind components;
 @tailwind utilities;
 
 @layer base {
@@ -169,107 +170,9 @@
   direction: rtl;
 }
 
-html[dir="rtl"] {
-  direction: rtl;
-  text-align: right;
-}
-
-html[dir="rtl"] body {
-  direction: rtl;
-  text-align: right;
-}
-
-/* RTL specific margin and padding fixes */
-html[dir="rtl"] .mr-1, html[dir="rtl"] .mr-2, html[dir="rtl"] .mr-3, html[dir="rtl"] .mr-4, 
-html[dir="rtl"] .mr-5, html[dir="rtl"] .mr-6, html[dir="rtl"] .mr-8, html[dir="rtl"] .mr-10 {
-  margin-right: 0 !important;
-}
-
-html[dir="rtl"] .ml-1, html[dir="rtl"] .ml-2, html[dir="rtl"] .ml-3, html[dir="rtl"] .ml-4, 
-html[dir="rtl"] .ml-5, html[dir="rtl"] .ml-6, html[dir="rtl"] .ml-8, html[dir="rtl"] .ml-10 {
-  margin-left: 0 !important;
-}
-
-/* RTL table columns */
-html[dir="rtl"] th, html[dir="rtl"] td {
-  text-align: right;
-}
-
-/* Correctly align dropdown menus in RTL */
-html[dir="rtl"] .dropdown-menu {
-  right: 0;
-  left: auto;
-  text-align: right;
-}
-
-/* RTL icons */
-html[dir="rtl"] .icon {
-  transform: scaleX(-1);
-}
-
-/* Flip border radius for RTL input groups */
-html[dir="rtl"] .rounded-l {
-  border-radius: 0 0.25rem 0.25rem 0;
-}
-
-html[dir="rtl"] .rounded-r {
-  border-radius: 0.25rem 0 0 0.25rem;
-}
-
 /* Hebrew font optimization */
 html[lang="he"] body {
   font-family: var(--font-sans), "Segoe UI", Arial, sans-serif;
-}
-
-/* Fixed positioning for elements in RTL */
-html[dir="rtl"] .fixed-start {
-  left: auto;
-  right: 0;
-}
-
-html[dir="rtl"] .fixed-end {
-  right: auto;
-  left: 0;
-}
-
-/* Support for flexbox in RTL */
-html[dir="rtl"] .flex-row {
-  flex-direction: row-reverse;
-}
-
-html[dir="rtl"] .flex-row-reverse {
-  flex-direction: row;
-}
-
-/* RTL text alignment utilities */
-@media (min-width: 640px) {
-  html[dir="rtl"] .sm\:text-left {
-    text-align: right;
-  }
-  
-  html[dir="rtl"] .sm\:text-right {
-    text-align: left;
-  }
-}
-
-@media (min-width: 768px) {
-  html[dir="rtl"] .md\:text-left {
-    text-align: right;
-  }
-  
-  html[dir="rtl"] .md\:text-right {
-    text-align: left;
-  }
-}
-
-@media (min-width: 1024px) {
-  html[dir="rtl"] .lg\:text-left {
-    text-align: right;
-  }
-  
-  html[dir="rtl"] .lg\:text-right {
-    text-align: left;
-  }
 }
 
 @layer utilities {
