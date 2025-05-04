@@ -388,7 +388,7 @@ export default function HomePage() {
             <div>
               <h3 className="font-bold text-lg mb-4 text-white">קישורים מהירים</h3>
               <ul className="space-y-2">
-                <li><a href="/" className="text-gray-400 hover:text-[#FAA977] transition-colors duration-200">דף הבית</a></li>
+                <li><Link href="/" className="text-gray-400 hover:text-[#FAA977] transition-colors duration-200">דף הבית</Link></li>
                 <li><a href="#features" className="text-gray-400 hover:text-[#FAA977] transition-colors duration-200">תכונות</a></li>
                 <li><a href="#" className="text-gray-400 hover:text-[#FAA977] transition-colors duration-200">תמחור</a></li>
                 <li><a href="#" className="text-gray-400 hover:text-[#FAA977] transition-colors duration-200">בלוג</a></li>
