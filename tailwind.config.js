@@ -80,7 +80,81 @@ export default {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
       },
+      // RTL support for Tailwind
+      textAlign: {
+        start: 'start',
+        end: 'end',
+      },
+      margin: {
+        'start': 'margin-inline-start',
+        'end': 'margin-inline-end',
+      },
+      padding: {
+        'start': 'padding-inline-start',
+        'end': 'padding-inline-end',
+      },
+      inset: {
+        'start': 'inset-inline-start',
+        'end': 'inset-inline-end',
+      },
+      borderRadius: {
+        'start': 'border-start-start-radius',
+        'end': 'border-end-end-radius',
+        'start-end': 'border-start-end-radius',
+        'end-start': 'border-end-start-radius',
+      },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    function ({ addUtilities }) {
+      const newUtilities = {
+        '.text-start': {
+          'text-align': 'start',
+        },
+        '.text-end': {
+          'text-align': 'end',
+        },
+        '.ms-auto': {
+          'margin-inline-start': 'auto',
+        },
+        '.me-auto': {
+          'margin-inline-end': 'auto',
+        },
+        '.ms-0': {
+          'margin-inline-start': '0',
+        },
+        '.me-0': {
+          'margin-inline-end': '0',
+        },
+        '.ps-0': {
+          'padding-inline-start': '0',
+        },
+        '.pe-0': {
+          'padding-inline-end': '0',
+        },
+        '.float-start': {
+          'float': 'inline-start',
+        },
+        '.float-end': {
+          'float': 'inline-end',
+        },
+        '.start-0': {
+          'inset-inline-start': '0',
+        },
+        '.end-0': {
+          'inset-inline-end': '0',
+        },
+        '.rounded-start': {
+          'border-start-start-radius': '0.25rem',
+          'border-end-start-radius': '0.25rem',
+        },
+        '.rounded-end': {
+          'border-start-end-radius': '0.25rem',
+          'border-end-end-radius': '0.25rem',
+        },
+      };
+      addUtilities(newUtilities);
+    },
+  ],
 } 
