@@ -312,7 +312,7 @@ export function AnalysisList() {
               <TableHead className="w-[180px] text-white">תאריך</TableHead>
               <TableHead className="text-white">סוג</TableHead>
               <TableHead className="text-white">סטטוס</TableHead>
-              <TableHead className="text-right text-white">ציון</TableHead>
+              <TableHead className="text-left text-white">ציון</TableHead>
               <TableHead className="text-right text-white">פעולות</TableHead>
             </TableRow>
           </TableHeader>
@@ -330,7 +330,7 @@ export function AnalysisList() {
                     {statusLabels[analysis.status as AnalysisStatus] || analysis.status}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-right text-gray-300">
+                <TableCell className="text-left text-gray-300">
                   {analysis.status === 'done' && analysis.report_data?.summary?.totalScore ? (
                     <span className="font-semibold">
                       {Math.round(
