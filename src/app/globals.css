@@ -274,15 +274,15 @@ html[dir="rtl"] .flex-row-reverse {
 
 @layer utilities {
   .bg-grid-pattern {
-    background-image: linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 0);
+    background-size: 30px 30px;
+    background-position: -19px -19px;
   }
 
   .dark .bg-grid-pattern {
-    background-image: linear-gradient(to right, rgba(255,255,255,0.1) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.1) 1px, transparent 1px);
-    background-size: 20px 20px;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 0);
+    background-size: 30px 30px;
+    background-position: -19px -19px;
   }
 
   .animate-shake {
@@ -293,5 +293,121 @@ html[dir="rtl"] .flex-row-reverse {
     0%, 100% { transform: translateX(0); }
     20%, 60% { transform: translateX(-5px); }
     40%, 80% { transform: translateX(5px); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideFromBottom {
+    from { 
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to { 
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideFromRight {
+    from { 
+      transform: translateX(40px);
+      opacity: 0;
+    }
+    to { 
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.8s ease-in-out forwards;
+  }
+
+  .animate-slideFromBottom {
+    animation: slideFromBottom 0.8s ease-out forwards;
+    opacity: 0;
+  }
+
+  .animate-slideFromRight {
+    animation: slideFromRight 0.8s ease-out forwards;
+    opacity: 0;
+  }
+
+  .hover\:scale-\[1\.03\]:hover {
+    transform: scale(1.03);
+  }
+
+  .hover\:-translate-y-1:hover {
+    transform: translateY(-4px);
+  }
+
+  .hover\:translate-x-1:hover {
+    transform: translateX(4px);
+  }
+
+  .text-\[\#FAA977\] {
+    color: #FAA977;
+  }
+
+  .bg-\[\#FF6F00\]\/5 {
+    background-color: rgba(255, 111, 0, 0.05);
+  }
+
+  .bg-\[\#FF6F00\]\/10 {
+    background-color: rgba(255, 111, 0, 0.1);
+  }
+
+  .bg-\[\#FF6F00\]\/20 {
+    background-color: rgba(255, 111, 0, 0.2);
+  }
+
+  .bg-\[\#4D1F0F\]\/10 {
+    background-color: rgba(77, 31, 15, 0.1);
+  }
+
+  .bg-\[\#4D1F0F\]\/15 {
+    background-color: rgba(77, 31, 15, 0.15);
+  }
+
+  .border-\[\#FF6F00\]\/20 {
+    border-color: rgba(255, 111, 0, 0.2);
+  }
+
+  .border-\[\#FF6F00\]\/30 {
+    border-color: rgba(255, 111, 0, 0.3);
+  }
+
+  .shadow-\[\#FF6F00\]\/20 {
+    --tw-shadow-color: rgba(255, 111, 0, 0.2);
+  }
+
+  .shadow-\[\#FF6F00\]\/30 {
+    --tw-shadow-color: rgba(255, 111, 0, 0.3);
+  }
+
+  .bg-gradient-to-r.from-\[\#FF6F00\].to-\[\#FAA977\] {
+    background-image: linear-gradient(to right, #FF6F00, #FAA977);
+  }
+
+  .bg-gradient-to-r.from-\[\#1A0D06\].to-black {
+    background-image: linear-gradient(to right, #1A0D06, #000000);
+  }
+
+  .bg-gradient-to-b.from-black.to-\[\#1A0D06\] {
+    background-image: linear-gradient(to bottom, #000000, #1A0D06);
+  }
+
+  .bg-gradient-to-b.from-\[\#1A0D06\].to-black {
+    background-image: linear-gradient(to bottom, #1A0D06, #000000);
+  }
+
+  .bg-clip-text.text-transparent.bg-gradient-to-r.from-\[\#FF6F00\].to-\[\#FAA977\] {
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-image: linear-gradient(to right, #FF6F00, #FAA977);
   }
 }

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/layout/Logo';
+import { Testimonial } from '@/components/ui/testimonial';
 
 export default function HomePage() {
   return (
@@ -14,28 +15,31 @@ export default function HomePage() {
         </nav>
       </header>
       <main className="flex-1">
-        {/* Hero Section with background pattern */}
+        {/* Hero Section with background pattern and animation */}
         <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 relative overflow-hidden">
           {/* Background Pattern */}
           <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
           <div className="absolute inset-0 bg-gradient-to-r from-[#FF6F00]/10 to-[#4D1F0F]/10 opacity-20"></div>
+          {/* Animated Gradient Orbs */}
+          <div className="absolute top-20 right-10 w-72 h-72 rounded-full bg-[#FF6F00]/10 blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 left-10 w-96 h-96 rounded-full bg-[#4D1F0F]/15 blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
           
           <div className="container px-4 md:px-6 relative z-10">
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex flex-col justify-center space-y-4">
                 <div className="space-y-2">
-                  <div className="inline-block text-sm font-medium px-3 py-1 bg-[#FF6F00]/10 text-[#FAA977] rounded-full mb-2">
+                  <div className="inline-block text-sm font-medium px-3 py-1 bg-[#FF6F00]/10 text-[#FAA977] rounded-full mb-2 animate-fadeIn">
                     הדרך החכמה לניתוח שיחות
                   </div>
-                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
+                  <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none animate-slideFromBottom" style={{ animationDelay: '0.2s' }}>
                     <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF6F00] to-[#FAA977]">GameChanger</span> - הפלטפורמה לניהול מכירות ושירות
                   </h1>
-                  <p className="max-w-[600px] text-gray-300 md:text-xl">
+                  <p className="max-w-[600px] text-gray-300 md:text-xl animate-slideFromBottom" style={{ animationDelay: '0.4s' }}>
                     שדרגו את שיחות המכירה והשירות שלכם באמצעות ניתוח מתקדם מבוסס AI.
                     זהו נתונים חשובים, חוזקות ונקודות לשיפור, וקבלו המלצות מעשיות.
                   </p>
                 </div>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                <div className="flex flex-col gap-2 min-[400px]:flex-row animate-slideFromBottom" style={{ animationDelay: '0.6s' }}>
                   <Button asChild size="lg" className="bg-gradient-to-r from-[#FF6F00] to-[#FAA977] hover:from-[#FAA977] hover:to-[#FF6F00] shadow-lg shadow-[#FF6F00]/20 hover:shadow-xl hover:shadow-[#FF6F00]/30 transition-all duration-200 border-0 text-white">
                     <Link href="/login">
                       התחל כעת
@@ -48,12 +52,12 @@ export default function HomePage() {
                   </Button>
                 </div>
               </div>
-              <div className="flex items-center justify-center">
-                <div className="relative h-80 w-full overflow-hidden rounded-xl bg-gray-800 md:h-96 shadow-2xl shadow-[#FF6F00]/10 transform hover:scale-[1.01] transition-transform duration-300">
+              <div className="flex items-center justify-center animate-slideFromRight" style={{ animationDelay: '0.8s' }}>
+                <div className="relative h-80 w-full overflow-hidden rounded-xl bg-gray-800 md:h-96 shadow-2xl shadow-[#FF6F00]/10 transform hover:scale-[1.03] transition-transform duration-300">
                   <div className="bg-gradient-to-br from-[#000000] to-[#4D1F0F] h-full w-full flex items-center justify-center text-center p-6">
                     <div className="space-y-4 text-white">
                       <div className="flex justify-center mb-2">
-                        <div className="h-16 w-16 rounded-full bg-[#FF6F00]/20 flex items-center justify-center">
+                        <div className="h-16 w-16 rounded-full bg-[#FF6F00]/20 flex items-center justify-center animate-pulse">
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="32"
@@ -75,19 +79,43 @@ export default function HomePage() {
                       </div>
                       <h3 className="text-2xl font-bold">דוגמת ניתוח שיחת מכירה</h3>
                       <div className="space-y-3 text-start">
-                        <div className="p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-[#FF6F00]/20 transition-colors duration-200">
+                        <div className="p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-[#FF6F00]/20 transition-colors duration-200 transform hover:translate-x-1">
                           <p><strong className="text-[#FAA977]">נקודות לשימור:</strong> הקשבה אקטיבית, זיהוי צרכים</p>
                         </div>
-                        <div className="p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-[#FF6F00]/20 transition-colors duration-200">
+                        <div className="p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-[#FF6F00]/20 transition-colors duration-200 transform hover:translate-x-1">
                           <p><strong className="text-[#FAA977]">נקודות לשיפור:</strong> טכניקות סגירה, התמודדות עם התנגדויות</p>
                         </div>
-                        <div className="p-3 rounded-lg bg-[#FF6F00]/5 hover:bg-[#FF6F00]/10 border border-[#FF6F00]/30 transition-colors duration-200">
+                        <div className="p-3 rounded-lg bg-[#FF6F00]/5 hover:bg-[#FF6F00]/10 border border-[#FF6F00]/30 transition-colors duration-200 transform hover:translate-x-1">
                           <p><strong>ציון כולל:</strong> <span className="text-[#FAA977] font-bold text-xl">85/100</span></p>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        {/* Stats Section */}
+        <section className="w-full py-12 bg-gradient-to-b from-black to-[#1A0D06]">
+          <div className="container px-4 md:px-6 mx-auto">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              <div className="text-center">
+                <h3 className="text-4xl font-bold text-[#FAA977]">+83%</h3>
+                <p className="text-gray-400 mt-2">שיפור ביצועי מכירות</p>
+              </div>
+              <div className="text-center">
+                <h3 className="text-4xl font-bold text-[#FAA977]">+65%</h3>
+                <p className="text-gray-400 mt-2">שיפור בשביעות רצון לקוחות</p>
+              </div>
+              <div className="text-center">
+                <h3 className="text-4xl font-bold text-[#FAA977]">-40%</h3>
+                <p className="text-gray-400 mt-2">ירידה בזמן הדרכת עובדים</p>
+              </div>
+              <div className="text-center">
+                <h3 className="text-4xl font-bold text-[#FAA977]">+95%</h3>
+                <p className="text-gray-400 mt-2">שביעות רצון משתמשים</p>
               </div>
             </div>
           </div>
@@ -116,7 +144,7 @@ export default function HomePage() {
               </div>
             </div>
             <div className="mx-auto grid max-w-5xl items-center gap-8 py-12 lg:grid-cols-3 lg:gap-12">
-              <div className="group grid gap-2 transition-all duration-200 p-4 rounded-xl hover:bg-[#FF6F00]/5 border border-transparent hover:border-[#FF6F00]/20">
+              <div className="group grid gap-2 transition-all duration-200 p-6 rounded-xl hover:bg-[#FF6F00]/5 border border-transparent hover:border-[#FF6F00]/20 hover:-translate-y-1">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF6F00] to-[#FAA977] text-white shadow-lg shadow-[#FF6F00]/20 group-hover:shadow-[#FF6F00]/30 transition-all duration-200">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -140,7 +168,7 @@ export default function HomePage() {
                   ניתוח מתקדם של שיחות מכירה ושירות, זיהוי נקודות לשימור ונקודות לשיפור
                 </p>
               </div>
-              <div className="group grid gap-2 transition-all duration-200 p-4 rounded-xl hover:bg-[#FF6F00]/5 border border-transparent hover:border-[#FF6F00]/20">
+              <div className="group grid gap-2 transition-all duration-200 p-6 rounded-xl hover:bg-[#FF6F00]/5 border border-transparent hover:border-[#FF6F00]/20 hover:-translate-y-1">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF6F00] to-[#FAA977] text-white shadow-lg shadow-[#FF6F00]/20 group-hover:shadow-[#FF6F00]/30 transition-all duration-200">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -162,7 +190,7 @@ export default function HomePage() {
                   יצירת אוגדני מכירות ושירות מקצועיים על בסיס ניתוחי השיחות
                 </p>
               </div>
-              <div className="group grid gap-2 transition-all duration-200 p-4 rounded-xl hover:bg-[#FF6F00]/5 border border-transparent hover:border-[#FF6F00]/20">
+              <div className="group grid gap-2 transition-all duration-200 p-6 rounded-xl hover:bg-[#FF6F00]/5 border border-transparent hover:border-[#FF6F00]/20 hover:-translate-y-1">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#FF6F00] to-[#FAA977] text-white shadow-lg shadow-[#FF6F00]/20 group-hover:shadow-[#FF6F00]/30 transition-all duration-200">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -190,11 +218,98 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* Testimonials Section */}
+        <section className="w-full py-12 md:py-24 bg-gradient-to-b from-[#1A0D06] to-black">
+          <div className="container px-4 md:px-6 mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight text-white mb-4">
+                מה לקוחותינו אומרים
+              </h2>
+              <p className="max-w-[700px] mx-auto text-gray-300">
+                אלפי חברות כבר משתמשות ב-GameChanger כדי לשפר את תהליכי המכירה והשירות שלהן
+              </p>
+            </div>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-xl border border-gray-800 hover:border-[#FF6F00]/30 hover:-translate-y-1 transition-all duration-300">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-[#FF6F00]/20 rounded-full flex items-center justify-center text-xl font-bold text-[#FAA977]">א</div>
+                  <div className="mr-4">
+                    <h4 className="font-bold">אריאל טכנולוגיות</h4>
+                    <p className="text-sm text-gray-400">אורי, מנהל מכירות</p>
+                  </div>
+                </div>
+                <p className="text-gray-300">"הפלטפורמה שינתה לחלוטין את תהליכי ההדרכה והבקרה שלנו. נציגי המכירות שלנו משתפרים הרבה יותר מהר עם המשובים המדויקים."</p>
+                <div className="flex mt-4 text-[#FAA977]">
+                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-xl border border-gray-800 hover:border-[#FF6F00]/30 hover:-translate-y-1 transition-all duration-300">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-[#FF6F00]/20 rounded-full flex items-center justify-center text-xl font-bold text-[#FAA977]">מ</div>
+                  <div className="mr-4">
+                    <h4 className="font-bold">מגדל ביטוח</h4>
+                    <p className="text-sm text-gray-400">רונית, מנהלת שירות</p>
+                  </div>
+                </div>
+                <p className="text-gray-300">"היכולת לנתח שיחות שירות בזמן אמת ולקבל תובנות מיידיות היא פשוט מדהימה. שיפרנו את שביעות רצון הלקוחות ב-30% תוך חודשיים."</p>
+                <div className="flex mt-4 text-[#FAA977]">
+                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-xl border border-gray-800 hover:border-[#FF6F00]/30 hover:-translate-y-1 transition-all duration-300">
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-[#FF6F00]/20 rounded-full flex items-center justify-center text-xl font-bold text-[#FAA977]">ד</div>
+                  <div className="mr-4">
+                    <h4 className="font-bold">דיגיטל פלוס</h4>
+                    <p className="text-sm text-gray-400">יואב, סמנכ"ל מכירות</p>
+                  </div>
+                </div>
+                <p className="text-gray-300">"הניתוחים המעמיקים שהמערכת מספקת עזרו לנו לזהות דפוסים שלא היינו ערים להם. כעת יש לנו תהליך מכירה אחיד ויעיל הרבה יותר."</p>
+                <div className="flex mt-4 text-[#FAA977]">
+                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="w-full py-16 bg-black">
+          <div className="container px-4 md:px-6 mx-auto">
+            <div className="bg-gradient-to-r from-[#1A0D06] to-black rounded-2xl p-8 md:p-12 border border-[#FF6F00]/20 shadow-lg relative overflow-hidden">
+              <div className="absolute -top-20 -right-20 w-64 h-64 rounded-full bg-[#FF6F00]/10 blur-3xl"></div>
+              <div className="relative z-10">
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight text-white mb-4 max-w-2xl">
+                  מוכנים להפוך את השיחות שלכם למוצלחות יותר?
+                </h2>
+                <p className="max-w-[700px] text-gray-300 mb-8">
+                  התחילו עוד היום ותגלו איך GameChanger יכול לשפר משמעותית את תהליכי המכירה והשירות בארגון שלכם.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button asChild size="lg" className="bg-gradient-to-r from-[#FF6F00] to-[#FAA977] hover:from-[#FAA977] hover:to-[#FF6F00] shadow-lg shadow-[#FF6F00]/20 hover:shadow-xl hover:shadow-[#FF6F00]/30 transition-all duration-200 border-0 text-white">
+                    <Link href="/login">
+                      התחל חינם לתקופת ניסיון
+                    </Link>
+                  </Button>
+                  <Button size="lg" variant="outline" className="border-2 border-[#FF6F00]/50 hover:border-[#FF6F00] hover:bg-[#FF6F00]/5 transition-colors duration-200 text-white">
+                    <Link href="#">
+                      תיאום הדגמה אישית
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
       <footer className="border-t border-gray-800 bg-black">
         <div className="container flex flex-col items-center justify-between gap-4 py-6 md:h-16 md:flex-row md:py-0">
           <div className="text-center text-sm text-gray-400">
-            &copy; {new Date().getFullYear()} GameChang. כל הזכויות שמורות.
+            &copy; {new Date().getFullYear()} GameChanger. כל הזכויות שמורות ל-GameChanger ונבנה באמצעות KA
           </div>
         </div>
       </footer>
