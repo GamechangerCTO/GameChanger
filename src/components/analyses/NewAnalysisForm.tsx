@@ -30,13 +30,27 @@ import { Progress } from '@/components/ui/progress';
 import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 import { Upload } from 'lucide-react'; // Import upload icon
+import { Textarea } from '@/components/ui/textarea';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 
 const formSchema = z.object({
   analysis_type: z.enum(['sales', 'sales_followup', 'appointment_setting', 'appointment_followup', 'service'], {
     required_error: 'נא לבחור סוג ניתוח',
   }),
+  product_type: z.enum(['consumer_product', 'physical_product', 'services', 'digital_product'], {
+    required_error: 'נא לבחור סוג מוצר',
+  }),
+  target_audience: z.string().min(1, 'נא לבחור קהל יעד'),
+  objections: z.string().optional(),
+  service_issues: z.string().optional(),
+  has_previous_insights: z.enum(['yes', 'no']).default('no'),
+  previous_insights: z.string().optional(),
+  has_new_challenges: z.enum(['yes', 'no']).default('no'),
+  new_challenges: z.string().optional(),
   // Allow file to be null initially
-  file: z.instanceof(File, { message: 'נא להעלות קובץ שמע (mp3, wav)' }).nullable(),
+  file: z.instanceof(File, { message: 'נא להעלות קובץ שמע (mp3, wav, mpeg)' }).nullable(),
+  materials: z.array(z.instanceof(File)).optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -63,11 +77,22 @@ export function NewAnalysisForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       analysis_type: 'sales',
+      product_type: 'consumer_product',
+      target_audience: '',
+      objections: '',
+      service_issues: '',
+      has_previous_insights: 'no',
+      previous_insights: '',
+      has_new_challenges: 'no',
+      new_challenges: '',
       file: null, // Initialize file as null
+      materials: [],
     },
   });
 
   const fileValue = form.watch('file');
+  const hasPreviousInsights = form.watch('has_previous_insights');
+  const hasNewChallenges = form.watch('has_new_challenges');
 
   // Fetch the user's company when the component mounts
   useEffect(() => {
@@ -132,10 +157,10 @@ export function NewAnalysisForm() {
         return;
       }
 
-      // Check file type
-      if (!['audio/mpeg', 'audio/wav', 'audio/mp3'].includes(file.type)) {
-        setError('סוג הקובץ אינו נתמך. נא להעלות קובץ mp3 או wav');
-        form.setError('file', { type: 'manual', message: 'סוג הקובץ אינו נתמך (mp3, wav)' });
+      // Check file type - added MPEG format
+      if (!['audio/mpeg', 'audio/wav', 'audio/mp3', 'audio/x-mpeg'].includes(file.type)) {
+        setError('סוג הקובץ אינו נתמך. נא להעלות קובץ mp3, wav או mpeg');
+        form.setError('file', { type: 'manual', message: 'סוג הקובץ אינו נתמך (mp3, wav, mpeg)' });
         setIsSubmitting(false);
         return;
       }
@@ -192,6 +217,33 @@ export function NewAnalysisForm() {
 
       setProgress(50);
 
+      // העלאת חומרים נוספים אם קיימים
+      let materialsUrls: string[] = [];
+      if (values.materials && values.materials.length > 0) {
+        for (const material of values.materials) {
+          const materialFormData = new FormData();
+          materialFormData.append('file', material);
+          materialFormData.append('bucketName', STORAGE_BUCKET);
+          materialFormData.append('folder', `materials/${company.id}`);
+          materialFormData.append('fileName', `${Date.now()}-${sanitizeFileName(material.name)}`);
+          
+          const materialUploadResponse = await fetch(`${supabaseUrl}/functions/v1/upload-file`, {
+            method: 'POST',
+            body: materialFormData,
+            headers: {
+              'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+            }
+          });
+          
+          if (materialUploadResponse.ok) {
+            const materialUploadResult = await materialUploadResponse.json();
+            if (materialUploadResult.success && materialUploadResult.signedUrl) {
+              materialsUrls.push(materialUploadResult.signedUrl);
+            }
+          }
+        }
+      }
+
       // 2.5. בדיקה שה-URL תקין וניתן להורדה
       try {
         const testResponse = await fetch(recordingUrl, {
@@ -218,6 +270,13 @@ export function NewAnalysisForm() {
           user_id: user?.id,
           company_id: company.id,
           analysis_type: values.analysis_type,
+          product_type: values.product_type,
+          target_audience: values.target_audience,
+          objections: values.objections || null,
+          service_issues: values.service_issues || null,
+          previous_insights: values.has_previous_insights === 'yes' ? values.previous_insights : null,
+          new_challenges: values.has_new_challenges === 'yes' ? values.new_challenges : null,
+          materials_urls: materialsUrls.length > 0 ? materialsUrls : null,
           recording_url: recordingUrl,
           status: 'pending', // Initial status
         })
@@ -316,7 +375,7 @@ export function NewAnalysisForm() {
     <Card className="overflow-hidden bg-gray-900 border border-gray-800">
       <CardHeader>
         <CardTitle className="text-white">ניתוח שיחה חדשה</CardTitle>
-        <CardDescription className="text-gray-400">העלה קובץ שמע לניתוח ובחר את סוג השיחה</CardDescription>
+        <CardDescription className="text-gray-400">העלה קובץ שמע לניתוח ומלא את הפרטים הבאים</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -357,15 +416,235 @@ export function NewAnalysisForm() {
             
             <FormField
               control={form.control}
-              name="file"
-              render={({ field: { onChange, onBlur, name, ref } }) => (
+              name="product_type"
+              render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-white">קובץ שמע (mp3, wav)</FormLabel>
+                  <FormLabel className="text-white">סוג מוצר</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                        <SelectValue placeholder="בחר סוג מוצר" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-gray-800 border-gray-700 text-white">
+                      <SelectItem value="consumer_product">מוצרי מדף לצרכן הסופי</SelectItem>
+                      <SelectItem value="physical_product">מוצרים פיזיים</SelectItem>
+                      <SelectItem value="services">שירותים</SelectItem>
+                      <SelectItem value="digital_product">מוצרים דיגיטליים</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-orange-400" />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="target_audience"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white">קהל יעד</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="הזן את קהל היעד"
+                      className="bg-gray-800 border-gray-700 text-white"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage className="text-orange-400" />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="objections"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white">התנגדויות שכיחות של לקוחות בתהליך מכירה / תיאום פגישה</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="פרט התנגדויות שכיחות שעולות בשיחות"
+                      className="bg-gray-800 border-gray-700 text-white resize-none min-h-[80px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-gray-500 text-xs">
+                    שדה לא חובה
+                  </FormDescription>
+                  <FormMessage className="text-orange-400" />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="service_issues"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white">בעיות שירות שכיחות</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="פרט בעיות שירות שכיחות שעולות בשיחות"
+                      className="bg-gray-800 border-gray-700 text-white resize-none min-h-[80px]"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription className="text-gray-500 text-xs">
+                    שדה לא חובה
+                  </FormDescription>
+                  <FormMessage className="text-orange-400" />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="has_previous_insights"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel className="text-white">האם יש לך דגשים או תובנות מהניתוחים האחרונים?</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex gap-8"
+                    >
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <RadioGroupItem value="yes" id="previous-yes" className="border-orange-500 text-orange-500" />
+                        <Label htmlFor="previous-yes" className="text-white">כן</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <RadioGroupItem value="no" id="previous-no" className="border-orange-500 text-orange-500" />
+                        <Label htmlFor="previous-no" className="text-white">לא</Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage className="text-orange-400" />
+                </FormItem>
+              )}
+            />
+            
+            {hasPreviousInsights === 'yes' && (
+              <FormField
+                control={form.control}
+                name="previous_insights"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white">פרט את הדגשים והתובנות מניתוחים קודמים</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="הזן את התובנות והדגשים מניתוחים קודמים"
+                        className="bg-gray-800 border-gray-700 text-white resize-none min-h-[80px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-orange-400" />
+                  </FormItem>
+                )}
+              />
+            )}
+            
+            <FormField
+              control={form.control}
+              name="has_new_challenges"
+              render={({ field }) => (
+                <FormItem className="space-y-3">
+                  <FormLabel className="text-white">אתגרים וצרכים חדשים שצפים אצלכם בחברה?</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex gap-8"
+                    >
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <RadioGroupItem value="yes" id="challenges-yes" className="border-orange-500 text-orange-500" />
+                        <Label htmlFor="challenges-yes" className="text-white">כן</Label>
+                      </div>
+                      <div className="flex items-center space-x-2 space-x-reverse">
+                        <RadioGroupItem value="no" id="challenges-no" className="border-orange-500 text-orange-500" />
+                        <Label htmlFor="challenges-no" className="text-white">לא</Label>
+                      </div>
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage className="text-orange-400" />
+                </FormItem>
+              )}
+            />
+            
+            {hasNewChallenges === 'yes' && (
+              <FormField
+                control={form.control}
+                name="new_challenges"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-white">פרט את האתגרים והצרכים החדשים</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="הזן את האתגרים והצרכים החדשים בחברה"
+                        className="bg-gray-800 border-gray-700 text-white resize-none min-h-[80px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-orange-400" />
+                  </FormItem>
+                )}
+              />
+            )}
+            
+            <FormField
+              control={form.control}
+              name="materials"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white">חומרים קיימים / תסריטים / בנקים של שאלות ותשובות</FormLabel>
                   <FormControl>
                     <div className="relative">
                       <Input 
                         type="file" 
-                        accept="audio/mpeg,audio/wav,audio/mp3" 
+                        className="hidden" 
+                        id="materials-upload"
+                        multiple
+                        onChange={(e) => {
+                          const files = Array.from(e.target.files || []);
+                          field.onChange(files);
+                        }}
+                        disabled={isSubmitting}
+                      />
+                      <label 
+                        htmlFor="materials-upload"
+                        className={`flex items-center justify-center w-full h-20 px-4 transition bg-gray-800 border-2 border-gray-700 border-dashed rounded-md appearance-none cursor-pointer hover:border-orange-400 focus:outline-none ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <span className="flex items-center space-x-2 rtl:space-x-reverse">
+                          <Upload className="w-6 h-6 text-gray-400" />
+                          <span className="font-medium text-gray-400">
+                            העלאת חומרים קיימים (לא חובה)
+                          </span>
+                        </span>
+                      </label>
+                    </div>
+                  </FormControl>
+                  <FormDescription className="text-gray-500 text-xs">
+                    שדה לא חובה
+                  </FormDescription>
+                  <FormMessage className="text-orange-400" />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="file"
+              render={({ field: { onChange, onBlur, name, ref } }) => (
+                <FormItem>
+                  <FormLabel className="text-white">קובץ שמע (mp3, wav, mpeg)</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input 
+                        type="file" 
+                        accept="audio/mpeg,audio/wav,audio/mp3,audio/x-mpeg" 
                         className="hidden" // Hide the default input
                         id="file-upload"
                         onChange={(e) => onChange(e.target.files ? e.target.files[0] : null)} 

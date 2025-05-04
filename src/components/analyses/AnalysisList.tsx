@@ -54,6 +54,8 @@ const analysisTypeLabels: Record<string, string> = {
   sales: 'שיחת מכירה',
   service: 'שיחת שירות',
   appointment_setting: 'תיאום פגישה',
+  sales_followup: 'פולו אפ מכירה טלפונית',
+  appointment_followup: 'פולו-אפ תיאום פגישה',
 };
 
 export function AnalysisList() {
@@ -334,7 +336,7 @@ export function AnalysisList() {
                       {Math.round(
                         (analysis.report_data.summary.totalScore / 
                          (7 * (analysis.report_data?.analysis?.length || 28))) * 100
-                      )}
+                      )}/100
                     </span>
                   ) : (
                     <span className="text-gray-500">-</span>
@@ -358,31 +360,6 @@ export function AnalysisList() {
                         <span className="flex items-center gap-2">
                           <Send className="h-3 w-3" />
                           שלח לניתוח
-                        </span>
-                      )}
-                    </Button>
-                  ) : (analysis.status === 'done' || analysis.status === 'error' || analysis.status === 'failed') ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => startAnalysis(analysis.id)}
-                      disabled={processingAnalysisIds.has(analysis.id)}
-                      className="border-orange-500 text-orange-500 hover:bg-orange-500/10 hover:text-orange-400"
-                    >
-                      {processingAnalysisIds.has(analysis.id) ? (
-                        <span className="flex items-center gap-2">
-                          <div className="w-3 h-3 border-t-2 border-r-2 border-orange-500 rounded-full animate-spin"></div>
-                          מעבד...
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
-                            <path d="M21 3v5h-5"></path>
-                            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
-                            <path d="M8 16H3v5"></path>
-                          </svg>
-                          נתח מחדש
                         </span>
                       )}
                     </Button>

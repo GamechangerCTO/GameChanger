@@ -7,7 +7,7 @@ import { Toaster } from "react-hot-toast";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GameChanger - מערכת לניתוח שיחות מכירה ושירות בעזרת AI",
+  title: "GameChanger - הפלטפורמה לניהול מכירות ושירות",
   description: "שדרגו את שיחות המכירה והשירות שלכם באמצעות ניתוח מתקדם מבוסס AI. זיהוי חוזקות, הצעות לשיפור וניתוח דאטה של לקוחות.",
   keywords: "ניתוח שיחות, מכירות, שירות לקוחות, בינה מלאכותית, AI",
   authors: [{ name: "צוות GameChanger" }],

@@ -28,7 +28,7 @@ export default function HomePage() {
                     הדרך החכמה לניתוח שיחות
                   </div>
                   <h1 className="text-3xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none">
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF6F00] to-[#FAA977]">GameChanger</span> - מערכת לניתוח שיחות מכירה ושירות
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#FF6F00] to-[#FAA977]">GameChanger</span> - הפלטפורמה לניהול מכירות ושירות
                   </h1>
                   <p className="max-w-[600px] text-gray-300 md:text-xl">
                     שדרגו את שיחות המכירה והשירות שלכם באמצעות ניתוח מתקדם מבוסס AI.
@@ -76,10 +76,10 @@ export default function HomePage() {
                       <h3 className="text-2xl font-bold">דוגמת ניתוח שיחת מכירה</h3>
                       <div className="space-y-3 text-start">
                         <div className="p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-[#FF6F00]/20 transition-colors duration-200">
-                          <p><strong className="text-[#FAA977]">חוזקות:</strong> הקשבה אקטיבית, זיהוי צרכים</p>
+                          <p><strong className="text-[#FAA977]">נקודות לשימור:</strong> הקשבה אקטיבית, זיהוי צרכים</p>
                         </div>
                         <div className="p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-[#FF6F00]/20 transition-colors duration-200">
-                          <p><strong className="text-[#FAA977]">לשיפור:</strong> טכניקות סגירה, התמודדות עם התנגדויות</p>
+                          <p><strong className="text-[#FAA977]">נקודות לשיפור:</strong> טכניקות סגירה, התמודדות עם התנגדויות</p>
                         </div>
                         <div className="p-3 rounded-lg bg-[#FF6F00]/5 hover:bg-[#FF6F00]/10 border border-[#FF6F00]/30 transition-colors duration-200">
                           <p><strong>ציון כולל:</strong> <span className="text-[#FAA977] font-bold text-xl">85/100</span></p>
@@ -137,7 +137,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-bold group-hover:text-[#FAA977] transition-colors duration-200">ניתוח שיחות</h3>
                 <p className="text-gray-300">
-                  ניתוח מתקדם של שיחות מכירה ושירות, זיהוי חוזקות ונקודות לשיפור
+                  ניתוח מתקדם של שיחות מכירה ושירות, זיהוי נקודות לשימור ונקודות לשיפור
                 </p>
               </div>
               <div className="group grid gap-2 transition-all duration-200 p-4 rounded-xl hover:bg-[#FF6F00]/5 border border-transparent hover:border-[#FF6F00]/20">
