@@ -218,7 +218,7 @@ export function NewAnalysisForm() {
       setProgress(50);
 
       // העלאת חומרים נוספים אם קיימים
-      let materialsUrls: string[] = [];
+      const materialsUrls: string[] = [];
       if (values.materials && values.materials.length > 0) {
         for (const material of values.materials) {
           const materialFormData = new FormData();
